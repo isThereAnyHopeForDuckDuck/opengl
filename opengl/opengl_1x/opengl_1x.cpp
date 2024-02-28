@@ -44,6 +44,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_OPENGL1X));
 
     MSG msg = {0};
+
+    RECT cliRect;
+    GetClientRect(hWnd, &cliRect);
+
+    RECT glRect;
+    glRect.left = cliRect.left + 10;
+    glRect.right = cliRect.right - 10;
+    glRect.top = cliRect.top - 10;
+    glRect.bottom = cliRect.bottom + 10;
+
     GLContext glc;
     
     if (!glc.setup(hWnd, GetDC(hWnd)))
@@ -59,8 +69,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
         else {
 
-            glClearColor(1, 0, 1, 1);
+            glClearColor(0.5, 0.5, 0.5, 1);
             glClear(GL_COLOR_BUFFER_BIT);
+
+            glViewport(glRect.left, glRect.top, glRect.right, glRect.bottom);
+
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            glOrtho(glRect.left, glRect.right, glRect.bottom, glRect.top, -1, 1);
+
+            glBegin(GL_LINES);
+            glVertex3f(0, 0, 0);
+            glVertex3f(glRect.right / 2, glRect.bottom / 2, 0);
+            glEnd();
+
             glc.swapBuffer();
         }
 
