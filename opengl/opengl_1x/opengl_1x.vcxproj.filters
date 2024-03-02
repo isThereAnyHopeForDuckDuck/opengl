@@ -30,6 +30,9 @@
     <ClInclude Include="GLContext.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="openglWindow.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="opengl_1x.cpp">

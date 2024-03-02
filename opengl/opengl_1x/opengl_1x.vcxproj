@@ -130,6 +130,7 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="GLContext.h" />
+    <ClInclude Include="openglWindow.h" />
     <ClInclude Include="opengl_1x.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
