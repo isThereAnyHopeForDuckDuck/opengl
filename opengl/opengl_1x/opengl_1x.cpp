@@ -64,8 +64,8 @@ public:
             pointData[i].m_z = cz;
 
             pointData[i].m_r = i*0.1;
-            pointData[i].m_g = i * 0.15;
-            pointData[i].m_b = i*0.17;
+            pointData[i].m_g = 0;
+            pointData[i].m_b = 0;
         }
         //opengl 1x 的顶点数组，只能放顶点，但是它也提供了颜色数组，放颜色。
         //在opengl 3x 中，顶点数组，放了 顶点 颜色 纹理坐标 这里有没有提供呢
@@ -74,7 +74,9 @@ public:
         glVertexPointer(3, GL_FLOAT, sizeof(openglPoint), pointData);
         glColorPointer(3, GL_FLOAT, sizeof(openglPoint), &pointData[0].m_r);
 
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 1 + 7);
+        //glDrawArrays(GL_LINE_STRIP, 0, 1 + 7);
+        //glDrawArrays(GL_LINES, 0, 1 + 7);
+        glDrawArrays(GL_LINE_LOOP, 0, 1 + 6);
         
 #else
 
