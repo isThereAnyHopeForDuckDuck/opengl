@@ -41,62 +41,31 @@ public:
         //固定管线编程，不能自己写shader，但是顶点数组还是有的
         //但是，这个顶点数组中的数据，真就只是顶点，不能指定多种数据
         struct openglPoint {
-            float m_x0;
-            float m_y0;
-            float m_z0;
-
-            float m_x1;
-            float m_y1;
-            float m_z1;
-
-            float m_cx;
-            float m_cy;
-            float m_cz;
+            float m_x;
+            float m_y;
+            float m_z;
         };
         float cx = glRect.right / 2, cy = glRect.bottom / 2, cz = 0;
         float r = glRect.right / 6;
 
-        openglPoint pointData[361] = { 0 };
-        for (int i = 0; i < 361; i++) {
-            pointData[i].m_cx = cx;
-            pointData[i].m_cy = cy;
-            pointData[i].m_cz = cz;
+        openglPoint pointData[16] = { 0 };
+        pointData[0].m_x = cx;
+        pointData[0].m_y = cy;
+        pointData[0].m_z = cz;
+        for (int i = 1; i <= 7; i++) {
+            int radian = (i-1) * 60;
 
-            pointData[i].m_x0 = (float)cos((double)i * M_PI / 180) * r + cx;;
-            pointData[i].m_y0 = (float)sin((double)i * M_PI / 180) * r + cy;;
-            pointData[i].m_z0 = cz;
-
-            pointData[i].m_x1 = (float)cos((double)(i + 1) * M_PI / 180) * r + cx;
-            pointData[i].m_y1 = (float)sin((double)(i + 1) * M_PI / 180) * r + cy;
-            pointData[i].m_z1 = cz;
+            pointData[i].m_x = (float)cos((double)radian * M_PI / 180) * r + cx;;
+            pointData[i].m_y = (float)sin((double)radian * M_PI / 180) * r + cy;;
+            pointData[i].m_z = cz;
         }
         
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(3, GL_FLOAT, 3*sizeof(float), pointData);
-        glDrawArrays(GL_TRIANGLES, 3, 3*361);
-
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 1 + 7);
+        //一个圆心 2个点 就是一个三角形 每加一个点，就是一个新的三角形。 这里一共 6个三角形
 #else
-        // 这种方式，相当于每画一个三角形，就向显存传递一次数据
-        glBegin(GL_TRIANGLES);
-            float x = 0, y = 0, z = 0;
-            float cx = glRect.right / 2, cy = glRect.bottom / 2, cz = 0;
-            float r = glRect.right / 6;
 
-            for (int i = 0; i < 360; i++) {
-                glVertex3f(cx, cy, cz);
-
-                x = (float)cos((double)i * M_PI / 180) * r + cx;;
-                y = (float)sin((double)i * M_PI / 180) * r + cy;;
-                z = cz;
-
-                glVertex3f(x, y, z);
-
-                x = (float)cos((double)(i + 1) * M_PI / 180) * r + cx;
-                y = (float)sin((double)(i + 1) * M_PI / 180) * r + cy;
-                z = cz; 
-                glVertex3f(x, y, z);
-            }
-        glEnd();
 #endif
         glc.swapBuffer();
     }
