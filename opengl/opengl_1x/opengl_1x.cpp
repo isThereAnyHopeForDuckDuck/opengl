@@ -62,7 +62,7 @@ public:
         
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(3, GL_FLOAT, 3*sizeof(float), pointData);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 1 + 7);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 1 + 7);
         //一个圆心 2个点 就是一个三角形 每加一个点，就是一个新的三角形。 这里一共 6个三角形
 #else
 
