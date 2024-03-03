@@ -50,34 +50,27 @@ public:
             float m_b;
         };
         
-        openglPoint pointData[16] = { 0 };
-        
-        auto bezeir = [](openglPoint p0, openglPoint p1, openglPoint p2, openglPoint p3, float t)->openglPoint {
-            openglPoint pointData;
+        openglPoint pointData[] = { 
+            {    20, 20, 0,      1, 0, 0},
+            {    20, 100, 0,     0, 1, 0 },
+            {    100, 20, 0,     1, 0, 0 },
+            {    100, 100, 0,    0, 0, 1 },
+            
+            {    200, 120, 0,     1, 0, 0 },
+            {    200, 200, 0,    0, 0, 1 },
 
-            pointData.m_x = (1 - t) * (1 - t) * (1 - t) * p0.m_x + 3 * t * (1 - t) * (1 - t) * p1.m_x + 3 * t * t * (1 - t) * p2.m_x + t * t * t * p3.m_x;
-            pointData.m_y = (1 - t) * (1 - t) * (1 - t) * p0.m_y + 3 * t * (1 - t) * (1 - t) * p1.m_y + 3 * t * t * (1 - t) * p2.m_y + t * t * t * p3.m_y;
-            pointData.m_z = 0;
+            {    300, 120, 0,     1, 0, 0 },
+            {    300, 200, 0,    0, 0, 1 },
+        }; 
 
-            return pointData;
-        };
-        
-        openglPoint p0 = { 20, 20, 0, 0, 0, 0 };
-        openglPoint p1 = { 400, 10, 0, 0, 0, 0 };
-        openglPoint p2 = { 600, 300, 0, 0, 0, 0 };
-        openglPoint p3 = { 800, 200, 0, 0, 0, 0 };
-        int cnt = 15;
-        for (int i = 0; i < cnt; i++) {
-            pointData[i] = bezeir(p0, p1, p2, p3, (float)i/cnt);
-        }
-        //opengl 1x 的顶点数组，只能放顶点，但是它也提供了颜色数组，放颜色。
-        //在opengl 3x 中，顶点数组，放了 顶点 颜色 纹理坐标 这里有没有提供呢
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
         glVertexPointer(3, GL_FLOAT, sizeof(openglPoint), pointData);
         glColorPointer(3, GL_FLOAT, sizeof(openglPoint), &pointData[0].m_r);
 
-        glDrawArrays(GL_LINE_STRIP, 0, cnt);        
+        glDrawArrays(GL_QUAD_STRIP, 0, sizeof(pointData)/sizeof(openglPoint));
+        //glDrawArrays(GL_QUADS, 0, sizeof(pointData) / sizeof(openglPoint));
+
 #else
 
 #endif
