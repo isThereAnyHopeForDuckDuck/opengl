@@ -67,9 +67,10 @@ public:
         glEnableClientState(GL_COLOR_ARRAY);
         glVertexPointer(3, GL_FLOAT, sizeof(openglPoint), pointData);
         glColorPointer(3, GL_FLOAT, sizeof(openglPoint), &pointData[0].m_r);
-
-        glDrawArrays(GL_QUAD_STRIP, 0, sizeof(pointData)/sizeof(openglPoint));
-        //glDrawArrays(GL_QUADS, 0, sizeof(pointData) / sizeof(openglPoint));
+        //多边形  用的三角形扇绘制
+        //四边形，用的三角形绘制
+        glDrawArrays(GL_POLYGON, 0, sizeof(pointData)/sizeof(openglPoint));
+        //glDrawArrays(GL_TRIANGLE_STRIP, 0, sizeof(pointData) / sizeof(openglPoint));
 
 #else
 
