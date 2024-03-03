@@ -44,6 +44,10 @@ public:
             float m_x;
             float m_y;
             float m_z;
+
+            float m_r;
+            float m_g;
+            float m_b;
         };
         float cx = glRect.right / 2, cy = glRect.bottom / 2, cz = 0;
         float r = glRect.right / 6;
@@ -58,12 +62,20 @@ public:
             pointData[i].m_x = (float)cos((double)radian * M_PI / 180) * r + cx;;
             pointData[i].m_y = (float)sin((double)radian * M_PI / 180) * r + cy;;
             pointData[i].m_z = cz;
+
+            pointData[i].m_r = i*0.1;
+            pointData[i].m_g = i * 0.15;
+            pointData[i].m_b = i*0.17;
         }
-        
+        //opengl 1x 的顶点数组，只能放顶点，但是它也提供了颜色数组，放颜色。
+        //在opengl 3x 中，顶点数组，放了 顶点 颜色 纹理坐标 这里有没有提供呢
         glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(3, GL_FLOAT, 3*sizeof(float), pointData);
+        glEnableClientState(GL_COLOR_ARRAY);
+        glVertexPointer(3, GL_FLOAT, sizeof(openglPoint), pointData);
+        glColorPointer(3, GL_FLOAT, sizeof(openglPoint), &pointData[0].m_r);
+
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 1 + 7);
-        //一个圆心 2个点 就是一个三角形 每加一个点，就是一个新的三角形。 这里一共 6个三角形
+        
 #else
 
 #endif
