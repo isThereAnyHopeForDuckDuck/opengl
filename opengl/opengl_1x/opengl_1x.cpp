@@ -3,23 +3,46 @@
 
 
 #include "openglWindow.h"
-
+#include "CELLMath.hpp"
 #include "GLContext.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-
+#include <vector>
 
 class sampleWindow : public openglWindow {
 private:
+    CELL::tspline<float> m_tspline;
     RECT glRect;
     GLContext glc;
+    std::vector<CELL::float3> m_point;
+    std::vector<CELL::float3> m_tsplinePoint;
+
+    int m_moveIdx = -1;
+    POINT rawPoint;
 public:
     sampleWindow(HINSTANCE hInstance, int nCmdShow) :openglWindow(hInstance, nCmdShow) {
         HWND hWnd = m_hWnd;
         RECT cliRect;
         GetClientRect(hWnd, &cliRect);
 
+        m_point = {
+            {30, 10, 0},
+            {100, 100, 0},
+            {200, 10, 0},
+            {300, 120, 0},
+            {400, 200, 0},
+            {500, 100, 0},
+            {600, 300, 0},
+        };
+        for (int i = 0; i < m_point.size(); i++) {
+            m_tspline.addPoint(m_point.at(i));
+        }
+
+        for (float i = 0; i < 1; i += 0.01) {
+            CELL::float3 point = m_tspline.interpolate(i);
+            m_tsplinePoint.emplace_back(point);
+        }
         glRect.left = cliRect.left + 10;
         glRect.right = cliRect.right - 10;
         glRect.top = cliRect.top - 10;
@@ -37,45 +60,80 @@ public:
         glLoadIdentity();
         glOrtho(glRect.left, glRect.right, glRect.bottom, glRect.top, -1, 1);
 
-#if 1
-        //固定管线编程，不能自己写shader，但是顶点数组还是有的
-        //但是，这个顶点数组中的数据，真就只是顶点，不能指定多种数据
-        struct openglPoint {
-            float m_x;
-            float m_y;
-            float m_z;
-
-            float m_r;
-            float m_g;
-            float m_b;
-        };
-        
-        openglPoint pointData[] = { 
-            {    20, 20, 0,      1, 0, 0},
-            {    20, 100, 0,     0, 1, 0 },
-            {    100, 20, 0,     1, 0, 0 },
-            {    100, 100, 0,    0, 0, 1 },
-            
-            {    200, 120, 0,     1, 0, 0 },
-            {    200, 200, 0,    0, 0, 1 },
-
-            {    300, 120, 0,     1, 0, 0 },
-            {    300, 200, 0,    0, 0, 1 },
-        }; 
-
         glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_COLOR_ARRAY);
-        glVertexPointer(3, GL_FLOAT, sizeof(openglPoint), pointData);
-        glColorPointer(3, GL_FLOAT, sizeof(openglPoint), &pointData[0].m_r);
-        //多边形  用的三角形扇绘制
-        //四边形，用的三角形绘制
-        glDrawArrays(GL_POLYGON, 0, sizeof(pointData)/sizeof(openglPoint));
-        //glDrawArrays(GL_TRIANGLE_STRIP, 0, sizeof(pointData) / sizeof(openglPoint));
+        glVertexPointer(3, GL_FLOAT, sizeof(CELL::float3), m_tsplinePoint.data());
 
-#else
+        glDrawArrays(GL_LINE_STRIP, 0, m_tsplinePoint.size());
 
-#endif
+        glPointSize(8);
+        glVertexPointer(3, GL_FLOAT, sizeof(CELL::float3), m_point.data());
+        glDrawArrays(GL_POINTS, 0, m_point.size());
+
         glc.swapBuffer();
+    }
+
+    LRESULT events(HWND hWnd, UINT msgId, WPARAM wParam, LPARAM lParam) override {
+        switch (msgId)
+        {
+        case WM_CLOSE:
+        case WM_DESTROY:
+        {
+            PostQuitMessage(0);
+        }
+        break;
+        case  WM_LBUTTONDOWN:
+        {
+            POINT   pt = { LOWORD(lParam),HIWORD(lParam) };
+            rawPoint = pt;
+            //判断是否是m_point中的点。
+            for (int i = 0; i < m_point.size(); i++) {
+                CELL::float3 point = m_point.at(i);
+                int rangeSize = 10;
+                int x0 = point.x - rangeSize, x1 = point.x + rangeSize;
+                int y0 = point.y - rangeSize, y1 = point.y + rangeSize;
+
+                if (pt.x >= x0 && pt.x <= x1 && pt.y >= y0 && pt.y <= y1) {
+                    m_moveIdx = i;
+                }
+            }
+        }
+        break;
+        case WM_LBUTTONUP:
+        {
+            m_moveIdx = -1;
+        }
+        break;
+        case WM_MOUSEMOVE:
+        {
+            if (m_moveIdx >= 0) {
+                POINT   pt = { LOWORD(lParam),HIWORD(lParam) };
+
+                POINT   off = { pt.x - rawPoint.x, pt.y - rawPoint.y };
+
+                rawPoint = pt;
+
+                m_point[m_moveIdx].x += off.x;
+                m_point[m_moveIdx].y += off.y;
+
+                m_tspline.getPoint(m_moveIdx).x += off.x;
+                m_tspline.getPoint(m_moveIdx).y += off.y;
+
+                m_tspline.recalcTangents();
+
+                m_tsplinePoint.clear();
+
+                for (float t = 0; t < 1.0f; t += 0.01f)
+                {
+                    CELL::float3  pos = m_tspline.interpolate(t);
+                    m_tsplinePoint.emplace_back(pos);
+                }
+            }
+        }
+        break;
+        default:
+            return DefWindowProc(hWnd, msgId, wParam, lParam);
+        }
+        return  0;
     }
 };
 

@@ -3,6 +3,10 @@
 #include "framework.h"
 #include "opengl_1x.h"
 
+//#define GWL_USERDATA (-21)
+#ifndef GWL_USERDATA
+#define GWL_USERDATA (-21)
+#endif
 
 
 class openglWindow {
@@ -56,9 +60,43 @@ public:
         }
         return (INT_PTR)FALSE;
     }
-
+    virtual LRESULT events(HWND hWnd, UINT msgId, WPARAM wParam, LPARAM lParam)
+    {
+        switch (msgId)
+        {
+        case WM_CLOSE:
+        case WM_DESTROY:
+        {
+            PostQuitMessage(0);
+        }
+        break;
+        default:
+            return DefWindowProc(hWnd, msgId, wParam, lParam);
+        }
+        return  0;
+    }
     static LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-
+        if (message == WM_CREATE)
+        {
+            LPCREATESTRUCT  pData = (LPCREATESTRUCT)lParam;
+            openglWindow* pTHis = (openglWindow*)pData->lpCreateParams;
+            //SetWindowLong(hWnd, GWL_USERDATA, (LONG)pTHis);
+            SetProp(hWnd, L"MyWindowData", (HANDLE)pTHis);
+            return DefWindowProc(hWnd, message, wParam, lParam);
+        }
+        else
+        {
+            //openglWindow* pTHis = (openglWindow*)GetWindowLong(hWnd, GWL_USERDATA);
+            openglWindow* pTHis = (openglWindow*)GetProp(hWnd, L"MyWindowData");
+            if (pTHis)
+            {
+                return  pTHis->events(hWnd, message, wParam, lParam);
+            }
+            else
+            {
+                return DefWindowProc(hWnd, message, wParam, lParam);
+            }
+        }
 
         switch (message)
         {
@@ -121,7 +159,7 @@ private:
 
     bool initInstance() {
         HWND hWnd = CreateWindowW(L"szWindowClass", L"szTitle", WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, m_instance, nullptr);
+            CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, m_instance, this);
 
         if (!hWnd)
         {
