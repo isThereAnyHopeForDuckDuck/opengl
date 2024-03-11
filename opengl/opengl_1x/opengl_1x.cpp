@@ -63,7 +63,13 @@ public:
         glLineWidth(5);
         glEnable(GL_LINE_STIPPLE);
         //32bit  1画 0不画
-        glLineStipple(1, 0xfff0);
+        glLineStipple(1, 0xffff);
+
+        //反锯齿的应用  划线要开启blender,目前不理解
+        glEnable(GL_LINE_SMOOTH);
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         glColor3f(1, 1, 0);
         glEnableClientState(GL_VERTEX_ARRAY);
@@ -71,6 +77,8 @@ public:
         glDrawArrays(GL_LINE_STRIP, 0, m_tsplinePoint.size());
 
         glColor3f(1, 0, 0);
+        glEnable(GL_POINT_SMOOTH);
+        glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
         glPointSize(8);
         glVertexPointer(3, GL_FLOAT, sizeof(CELL::float3), m_point.data());
         glDrawArrays(GL_POINTS, 0, m_point.size());
