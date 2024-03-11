@@ -60,11 +60,17 @@ public:
         glLoadIdentity();
         glOrtho(glRect.left, glRect.right, glRect.bottom, glRect.top, -1, 1);
 
+        glLineWidth(5);
+        glEnable(GL_LINE_STIPPLE);
+        //32bit  1画 0不画
+        glLineStipple(1, 0xfff0);
+
+        glColor3f(1, 1, 0);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(3, GL_FLOAT, sizeof(CELL::float3), m_tsplinePoint.data());
-
         glDrawArrays(GL_LINE_STRIP, 0, m_tsplinePoint.size());
 
+        glColor3f(1, 0, 0);
         glPointSize(8);
         glVertexPointer(3, GL_FLOAT, sizeof(CELL::float3), m_point.data());
         glDrawArrays(GL_POINTS, 0, m_point.size());
