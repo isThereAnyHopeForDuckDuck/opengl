@@ -20,6 +20,21 @@ private:
 
     int m_moveIdx = -1;
     POINT rawPoint;
+
+    //RGB image
+    uint8_t m_colorRGB[7 * 3] = {
+        255, 0, 0,
+        0, 255, 0,
+        0, 0, 255,
+        255, 255, 0,
+        255, 0, 255,
+        0, 255, 255,
+        7, 77, 7,
+    };
+    int m_rgbWidth = 160;
+    int m_rgbHeight = 160;
+    std::vector<uint8_t> m_rgbData;
+
 public:
     sampleWindow(HINSTANCE hInstance, int nCmdShow) :openglWindow(hInstance, nCmdShow) {
         HWND hWnd = m_hWnd;
@@ -49,6 +64,20 @@ public:
         glRect.bottom = cliRect.bottom + 10;
 
         glc.setup(hWnd, GetDC(hWnd));
+
+        //生成rgb图片
+        int index = 0;
+        int rowSize = m_rgbWidth / 7;
+        m_rgbData.resize(m_rgbWidth * m_rgbHeight * 3);
+        for (int row = 0; row < m_rgbWidth; row++) {
+            for (int col = 0; col < m_rgbHeight; col++) {
+                index = row / rowSize;
+                index = index > 6 ? 6 : index;
+                m_rgbData[row * m_rgbWidth * 3 + col * 3] = m_colorRGB[index*3];
+                m_rgbData[row * m_rgbWidth * 3 + col * 3 + 1] = m_colorRGB[index * 3 + 1];
+                m_rgbData[row * m_rgbWidth * 3 + col * 3 + 2] = m_colorRGB[index * 3 + 2];
+            }
+        }
     }
     void render() override {
         glClearColor(0.5, 0.5, 0.5, 1);
@@ -82,6 +111,9 @@ public:
         glPointSize(8);
         glVertexPointer(3, GL_FLOAT, sizeof(CELL::float3), m_point.data());
         glDrawArrays(GL_POINTS, 0, m_point.size());
+
+        glRasterPos2i(500, 200);
+        glDrawPixels(m_rgbWidth, m_rgbHeight, GL_RGB, GL_UNSIGNED_BYTE, m_rgbData.data());
 
         glc.swapBuffer();
     }
