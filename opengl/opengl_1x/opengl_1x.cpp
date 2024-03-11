@@ -1,7 +1,10 @@
 ﻿// opengl_1x.cpp : 定义应用程序的入口点。
 //
 
-
+/*
+    glew 找到OpenGL扩展的函数
+    垂直同步： 开：根据屏幕刷新率来刷新。 关：根据代码来，可以刷很快
+*/
 #include "openglWindow.h"
 #include "CELLMath.hpp"
 #include "GLContext.h"
@@ -64,6 +67,8 @@ public:
         glRect.bottom = cliRect.bottom + 10;
 
         glc.setup(hWnd, GetDC(hWnd));
+        glewInit();
+        wglSwapIntervalEXT(1);
 
         //生成rgb图片
         int index = 0;

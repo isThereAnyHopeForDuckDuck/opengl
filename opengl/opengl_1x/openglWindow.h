@@ -1,4 +1,6 @@
 #pragma once
+#include "GL/glew.h"
+#include "GL/wglew.h"
 
 #include "framework.h"
 #include "opengl_1x.h"
@@ -7,6 +9,7 @@
 #ifndef GWL_USERDATA
 #define GWL_USERDATA (-21)
 #endif
+
 
 
 class openglWindow {
