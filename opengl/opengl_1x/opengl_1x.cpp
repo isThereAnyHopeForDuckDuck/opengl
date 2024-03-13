@@ -46,19 +46,40 @@ public:
         
         gluPerspective(45, 16.0 / 9, 1, 101);
 
-        //摄像机位置在 0 0 0 点，方向是  -Z  这是前提
-        // 这种情况下  gluPerspective 的后2个参数 1 101，意味着 视景体的Z坐标范围是  [-1, -101]
-        // 用下面这几组坐标体会一下
-        //CELL::float3 trianglePoint[] = {{-1, -1, -0.99},{1, -1, -0.99}, {0, 1, -0.99}};
-        //CELL::float3 trianglePoint[] = { {-1, -1, -101.01},{1, -1, -101.01}, {0, 1, -101.01} };
-        CELL::float3 trianglePoint[] = { {-1, -1, -101},{1, -1,-101}, {0, 1, -101} };
+        struct pointInfo {
+            uint8_t r, g, b, a;
+            float x, y, z;
+        };
+        pointInfo point_1 = { 255,    0,      0  ,0, -10,    -10,     -81 };
+        pointInfo point_2 = { 255,    0,      0  ,0, -10,    10,      -81 };
+        pointInfo point_3 = { 255,    0,      0  ,0, 10,     -10,     -81 };
+        pointInfo point_4 = { 255,    0,     0   ,0, 10,     10,      -81 };
+        pointInfo point_5 = { 0,    255,      255,0, -10,    -10,     -91 };
+        pointInfo point_6 = { 255,    0,      255,0, -10,    10,      -91 };
+        pointInfo point_7 = { 128,    0,      128,0, 10,     -10,     -91 };
+        pointInfo point_8 = { 64,    0,      64  ,0, 10,     10,      -91 };
+            
+        pointInfo trianglePoint[] = {
+            point_1, point_3, point_4, point_2,
+            point_5, point_6, point_8, point_7,
+            point_1, point_2, point_6, point_5,
+            point_3, point_4, point_8, point_7,
+            point_1, point_5, point_7, point_3,
+            point_2, point_6, point_8, point_4, 
+        };
 
-        glColor3f(1, 0, 0);
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+#if 01
+        glInterleavedArrays(GL_C4UB_V3F, sizeof(pointInfo), trianglePoint);
+#else
         glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(3, GL_FLOAT, sizeof(CELL::float3), trianglePoint);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
+        glEnableClientState(GL_COLOR_ARRAY);
+        glVertexPointer(3, GL_FLOAT, sizeof(pointInfo), &trianglePoint[0].x);
+        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointInfo), trianglePoint);
+#endif
+        glDrawArrays(GL_QUADS, 0, 24);
         glc.swapBuffer();
     }
 
