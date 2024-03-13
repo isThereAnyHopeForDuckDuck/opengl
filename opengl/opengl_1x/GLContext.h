@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gl/gl.h>
+#include <gl/GLU.h>
 #include <Windows.h>
 
 class   GLContext
