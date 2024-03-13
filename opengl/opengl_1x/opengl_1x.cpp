@@ -79,6 +79,10 @@ public:
         glVertexPointer(3, GL_FLOAT, sizeof(pointInfo), &trianglePoint[0].x);
         glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointInfo), trianglePoint);
 #endif
+        glMatrixMode(GL_MODELVIEW);
+        //glLoadIdentity(); //没有这个 就会累加 画一次改一次
+        glTranslatef(0, 0, -0.1);
+
         glDrawArrays(GL_QUADS, 0, 24);
         glc.swapBuffer();
     }
