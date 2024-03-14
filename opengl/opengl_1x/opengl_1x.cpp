@@ -50,14 +50,14 @@ public:
             uint8_t r, g, b, a;
             float x, y, z;
         };
-        pointInfo point_1 = { 255,    0,      0  ,0, -10,    -10,     -81 };
-        pointInfo point_2 = { 255,    0,      0  ,0, -10,    10,      -81 };
-        pointInfo point_3 = { 255,    0,      0  ,0, 10,     -10,     -81 };
-        pointInfo point_4 = { 255,    0,     0   ,0, 10,     10,      -81 };
-        pointInfo point_5 = { 0,    255,      255,0, -10,    -10,     -91 };
-        pointInfo point_6 = { 255,    0,      255,0, -10,    10,      -91 };
-        pointInfo point_7 = { 128,    0,      128,0, 10,     -10,     -91 };
-        pointInfo point_8 = { 64,    0,      64  ,0, 10,     10,      -91 };
+        pointInfo point_1 = { 255,    0,      0  ,0, -1,    -1,     -1 };
+        pointInfo point_2 = { 255,    0,      0  ,0, -1,    1,      -1 };
+        pointInfo point_3 = { 255,    0,      0  ,0, 1,     -1,     -1 };
+        pointInfo point_4 = { 255,    0,     0   ,0, 1,     1,      -1 };
+        pointInfo point_5 = { 0,    255,      255,0, -1,    -1,     1 };
+        pointInfo point_6 = { 255,    0,      255,0, -1,    1,      1 };
+        pointInfo point_7 = { 128,    0,      128,0, 1,     -1,     1 };
+        pointInfo point_8 = { 64,    0,      64  ,0, 1,     1,      1 };
             
         pointInfo trianglePoint[] = {
             point_1, point_3, point_4, point_2,
@@ -79,11 +79,31 @@ public:
         glVertexPointer(3, GL_FLOAT, sizeof(pointInfo), &trianglePoint[0].x);
         glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointInfo), trianglePoint);
 #endif
+        static float angle = 0;
+        static float angle_moon = 0;
+        static float angle_earth = 0;
+        angle += 1;
+        angle_moon += 7.8;
+        angle_earth += 1.2;
         glMatrixMode(GL_MODELVIEW);
-        //glLoadIdentity(); //没有这个 就会累加 画一次改一次
-        glTranslatef(0, 0, -0.1);
 
+        glLoadIdentity(); 
+        glTranslatef(0, 0, -50);
+        glRotatef(angle, 0, 0, 1);
         glDrawArrays(GL_QUADS, 0, 24);
+
+        glRotatef(angle_earth, 0, 0, 1);
+        glTranslatef(15, 0, 0);
+        glRotatef(angle, 0, 0, 1);
+        glScalef(0.5, 0.5 , 1);
+        glDrawArrays(GL_QUADS, 0, 24);
+
+        glRotatef(angle_moon, 0, 0, 1);
+        glTranslatef(5, 0, 0);
+        glRotatef(angle, 0, 0, 1);
+        glScalef(0.5, 0.5, 1);
+        glDrawArrays(GL_QUADS, 0, 24);
+
         glc.swapBuffer();
     }
 
