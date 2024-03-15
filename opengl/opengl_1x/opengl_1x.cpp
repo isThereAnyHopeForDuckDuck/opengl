@@ -88,23 +88,39 @@ public:
         glMatrixMode(GL_MODELVIEW);
 
         glLoadIdentity(); 
+        /*多物体绘制原理分析
+        glTranslatef glRotatef 起始坐标系没动，是摄像机动了
+        */
         glTranslatef(0, 0, -50);
-        glRotatef(angle, 0, 0, 1);
+        glRotatef(45, 1, 0, 0);
+        glRotatef(45, 0, 0, 1);
+        glRotatef(angle, 1, 1, -1);
+        glDrawArrays(GL_QUADS, 0, 24);
+        /*
+        到这里 摄像机在X Z上都转了45度 所以方块看起来是立起来的。
+        glRotatef(angle, 1, 1, -1); 给的旋转轴  其实是相对坐标系给的。
+        glDrawArrays(GL_QUADS, 0, 24);  产生了第一张图
+        */
+        glRotatef(angle_earth, 1, 1, -1);
+        glTranslatef(10, -10, 0);
+        /*
+        因为Z旋转了45度 所以想要和第一个方块在水平线，得平移 15 -15  到4象限  严格来说这样不准确  之后再出一个详细完整版
+        产生了第2张图
+        */
+        glScalef(0.5, 0.5 , 0.5);
+        glRotatef(angle, 1, 1, -1);
         glDrawArrays(GL_QUADS, 0, 24);
 
-        glRotatef(angle_earth, 0, 0, 1);
-        glTranslatef(15, 0, 0);
-        glRotatef(angle, 0, 0, 1);
-        glScalef(0.5, 0.5 , 1);
+        glRotatef(angle_moon, 1, 1, -1);
+        glTranslatef(5, -5, 0);
+        glRotatef(angle, 1, 1, -1);
+        glScalef(0.5, 0.5, 0.5);
         glDrawArrays(GL_QUADS, 0, 24);
-
-        glRotatef(angle_moon, 0, 0, 1);
-        glTranslatef(5, 0, 0);
-        glRotatef(angle, 0, 0, 1);
-        glScalef(0.5, 0.5, 1);
-        glDrawArrays(GL_QUADS, 0, 24);
-
-        glc.swapBuffer();
+        /*
+        * 产生了第3张图
+        */
+        /*绕某个物体转，其实只要固定两个物体的位置，其中一个自转就行*/
+        glc.swapBuffer();//3图叠加
     }
 
 };
