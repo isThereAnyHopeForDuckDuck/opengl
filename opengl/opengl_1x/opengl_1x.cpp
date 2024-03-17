@@ -19,7 +19,13 @@ private:
     RECT glRect;
     GLContext glc;
 
+    uint32_t m_textureId;
+    uint8_t* m_textureRandom;
+    uint32_t m_randomTextureWidth = 128, m_randomTextureHeight = 160;
 public:
+    ~sampleWindow() {
+        delete[] m_textureRandom;
+    }
     sampleWindow(HINSTANCE hInstance, int nCmdShow) :openglWindow(hInstance, nCmdShow) {
         HWND hWnd = m_hWnd;
         RECT cliRect;
@@ -34,17 +40,42 @@ public:
         glewInit();
         wglSwapIntervalEXT(1);
 
+        //opengl 
         glViewport(glRect.left, glRect.top, glRect.right, glRect.bottom);
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
 
         glEnable(GL_DEPTH_TEST);
+
+        glEnable(GL_TEXTURE_2D);
+        m_textureId = createTexture();
+
+        //random 
+        m_textureRandom = new uint8_t[m_randomTextureWidth * m_randomTextureHeight * 3];
+
+        for (int i = 0; i < m_randomTextureWidth * m_randomTextureHeight * 3; i++) {
+            m_textureRandom[i] = i % 255;
+        }
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_randomTextureWidth, m_randomTextureHeight, 0, 
+            GL_RGB, GL_UNSIGNED_BYTE, m_textureRandom);
     }
+
+    uint32_t createTexture() {
+        uint32_t texId;
+
+        glGenTextures(1, &texId);
+        glBindTexture(GL_TEXTURE_2D, texId);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+        return texId;
+    }
+
     void render() override {
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 
 #if 01
         glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom,  -100, 100);
@@ -56,42 +87,28 @@ public:
 #endif
 
         struct pointInfo {
-            uint8_t r, g, b, a;
+            float u, v;
             float x, y, z;
         };
             
         pointInfo renderPoint[] = {
-            {255, 0, 0, 0,      -100, 0, 0},
-            {255, 0, 0, 0,      100, 0, 0},
-
-            {0, 255, 0, 0,      0, 100, 0},
-            {0, 255, 0, 0,      0, -100, 0},
-
-            {0, 0, 255, 0,      0, 0, -100},
-            {0, 0, 255, 0,      0, 0, 100},
-
-            //point
-            {255, 255, 255, 0,      0, 0, 100},
-            {255, 255, 255, 0,      0, 100, 0},
-            {255, 255, 255, 0,      100, 0, 0},
+            {0, 0,      -100, -100, 0},
+            {0, 1,      -100, 100, 0},
+            {1, 1,      100, 100, 0},
+            {1, 0,      100, -100, 0},
         };
-#if 01
+#if 0
         glInterleavedArrays(GL_C4UB_V3F, sizeof(pointInfo), renderPoint);
 #else
         glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_COLOR_ARRAY);
         glVertexPointer(3, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].x);
-        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointInfo), &renderPoint[0].r);
+
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u);
 #endif
-        static float angle = 0;
-        angle += 0.1;
+        glBindTexture(GL_TEXTURE_2D, m_textureId);
 
-        glRotatef(10, 1, 0, 0);
-        glRotatef(angle, 0, 0, 1);
-        glDrawArrays(GL_LINES, 0, 6);
-        glPointSize(10);
-        glDrawArrays(GL_POINTS, 6, 3);
-
+        glDrawArrays(GL_QUADS, 0, 4);
         glc.swapBuffer();
     }
 
