@@ -23,8 +23,8 @@ private:
     uint32_t m_textureId[8] = {0};
     const uint8_t* m_textureSrc[8] = {
         (const uint8_t*)"D:\\lr\\code\\res\\d.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\x.jpeg",
         (const uint8_t*)"D:\\lr\\code\\res\\m.jpeg",
+        (const uint8_t*)"D:\\lr\\code\\res\\q.jpeg",
         (const uint8_t*)"D:\\lr\\code\\res\\bat.jpeg",
         (const uint8_t*)"D:\\lr\\code\\res\\j.jpeg",
         (const uint8_t*)"D:\\lr\\code\\res\\L.jpeg",
@@ -111,8 +111,14 @@ public:
         glGenTextures(1, &texId);
         glBindTexture(GL_TEXTURE_2D, texId);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);//测试放大  搞个小分辨率图片
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//测试缩小  搞个大分辨率图片
+
+        /*
+            不管纹理UV给多少 先找到[0, 0] [1, 1]所在的位置，然后按规则，水平方向操作 然后垂直方向操作。 或者先垂直操作，再水平操作
+        */
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
         return texId;
     }
@@ -137,14 +143,14 @@ public:
             
         pointInfo renderPoint[] = {
             {0, 0,      -10, -10, -10},
-            {0, 1,      -10, 10, -10},
-            {1, 1,      10, 10, -10},
-            {1, 0,      10, -10, -10},
+            {0, 1,     -10, 10, -10},
+            {1, 1,    10, 10, -10},
+            {1, 0,     10, -10, -10},
 
-            {0, 0,      -10, -10, 10},
-            {0, 1,      -10, 10, 10},
-            {1, 1,      10, 10, 10},
-            {1, 0,      10, -10, 10},
+            {-4, -4,      -10, -10, 10},
+            {-4, 4,       -10, 10, 10},
+            {4, 4,        10, 10, 10},
+            {4, -4,       10, -10, 10},
 
             {0, 0,      10 ,- 10, -10, },
             {0, 1,      10 ,- 10, 10,  },
@@ -175,29 +181,20 @@ public:
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u);
 #endif
-        
-
-        static float angle = 0;
-        angle += 0.6;
         glMatrixMode(GL_MODELVIEW);
-        glScalef(3.2, 3.2, 3.2);
-        glRotatef(45, 1, 0, 0);
-        glRotatef(45, 0, 1, 0);
-        glRotatef(angle, 1, 1, 1);
-
+        glScaled(40, 40, 1);
+        glTranslated(10, 0, 0);
         for (int i = 0; i < 6; i++) {
             glBindTexture(GL_TEXTURE_2D, m_textureId[i]);
             glDrawArrays(GL_QUADS, 4*i, 4);
         }
 
-        glLoadIdentity();
-        glTranslatef(glRect.right / 2, glRect.bottom / 2, 0);
-        glTranslatef(80, 80, 0);
-        glRotatef(angle, 1, 1, 1);
+        glTranslated(-21, 0, 0);
         for (int i = 0; i < 6; i++) {
             glBindTexture(GL_TEXTURE_2D, m_textureId[i]);
             glDrawArrays(GL_QUADS, 4 * i, 4);
         }
+
         glc.swapBuffer();
     }
 
