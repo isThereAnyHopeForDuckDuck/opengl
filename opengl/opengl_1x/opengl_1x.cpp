@@ -34,6 +34,9 @@ private:
 public:
     ~sampleWindow() {
     }
+    virtual void openglUninit() override{
+        glDeleteTextures(6, m_textureId);
+    }
     sampleWindow(HINSTANCE hInstance, int nCmdShow) :openglWindow(hInstance, nCmdShow) {
         HWND hWnd = m_hWnd;
         RECT cliRect;
@@ -133,35 +136,35 @@ public:
         };
             
         pointInfo renderPoint[] = {
-            {0, 0,      -100, -100, -100},
-            {0, 1,      -100, 100, -100},
-            {1, 1,      100, 100, -100},
-            {1, 0,      100, -100, -100},
+            {0, 0,      -10, -10, -10},
+            {0, 1,      -10, 10, -10},
+            {1, 1,      10, 10, -10},
+            {1, 0,      10, -10, -10},
 
-            {0, 0,      -100, -100, 100},
-            {0, 1,      -100, 100, 100},
-            {1, 1,      100, 100, 100},
-            {1, 0,      100, -100, 100},
+            {0, 0,      -10, -10, 10},
+            {0, 1,      -10, 10, 10},
+            {1, 1,      10, 10, 10},
+            {1, 0,      10, -10, 10},
 
-            {0, 0,      100 ,- 100, -100, },
-            {0, 1,      100 ,- 100, 100,  },
-            {1, 1,      100, 100, 100,   },
-            {1, 0,      100, 100, -100,  },
+            {0, 0,      10 ,- 10, -10, },
+            {0, 1,      10 ,- 10, 10,  },
+            {1, 1,      10, 10, 10,   },
+            {1, 0,      10, 10, -10,  },
 
-            {0, 0,      -100 ,-100, -100, },
-            {0, 1,      -100 ,-100, 100,  },
-            {1, 1,      -100, 100, 100,   },
-            {1, 0,      -100, 100, -100,  },
+            {0, 0,      -10 ,-10, -10, },
+            {0, 1,      -10 ,-10, 10,  },
+            {1, 1,      -10, 10, 10,   },
+            {1, 0,      -10, 10, -10,  },
 
-            {0, 0,      -100,-100 , -100, },
-            {0, 1,      -100,-100 , 100,  },
-            {1, 1,      100, -100, 100,   },
-            {1, 0,      100, -100, -100,  },
+            {0, 0,      -10,-10 , -10, },
+            {0, 1,      -10,-10 , 10,  },
+            {1, 1,      10, -10, 10,   },
+            {1, 0,      10, -10, -10,  },
 
-            {0, 0,      -100, 100 , -100, },
-            {0, 1,      -100, 100 , 100,  },
-            {1, 1,      100,  100, 100,   },
-            {1, 0,      100,  100, -100,  },
+            {0, 0,      -10, 10 , -10, },
+            {0, 1,      -10, 10 , 10,  },
+            {1, 1,      10,  10, 10,   },
+            {1, 0,      10,  10, -10,  },
         };
 #if 0
         glInterleavedArrays(GL_C4UB_V3F, sizeof(pointInfo), renderPoint);
@@ -177,8 +180,9 @@ public:
         static float angle = 0;
         angle += 0.6;
         glMatrixMode(GL_MODELVIEW);
-        glRotatef(-45, 1, 0, 0);
-        glRotatef(-45, 0, 1, 0);
+        glScalef(3.2, 3.2, 3.2);
+        glRotatef(45, 1, 0, 0);
+        glRotatef(45, 0, 1, 0);
         glRotatef(angle, 1, 1, 1);
 
         for (int i = 0; i < 6; i++) {
@@ -186,6 +190,14 @@ public:
             glDrawArrays(GL_QUADS, 4*i, 4);
         }
 
+        glLoadIdentity();
+        glTranslatef(glRect.right / 2, glRect.bottom / 2, 0);
+        glTranslatef(80, 80, 0);
+        glRotatef(angle, 1, 1, 1);
+        for (int i = 0; i < 6; i++) {
+            glBindTexture(GL_TEXTURE_2D, m_textureId[i]);
+            glDrawArrays(GL_QUADS, 4 * i, 4);
+        }
         glc.swapBuffer();
     }
 

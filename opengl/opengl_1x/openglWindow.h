@@ -30,7 +30,7 @@ public:
     HWND getWindow() {
         return m_hWnd;
     }
-
+    virtual void openglUninit() {}
 	void loop() {
         MSG msg = { 0 };
 
@@ -43,6 +43,8 @@ public:
                 render();
             }
         }
+        //สอทลืสิด
+        openglUninit();
 	}
 
     static INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
