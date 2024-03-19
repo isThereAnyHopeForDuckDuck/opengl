@@ -112,7 +112,7 @@ public:
         glBindTexture(GL_TEXTURE_2D, texId);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);//测试放大  搞个小分辨率图片
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//测试缩小  搞个大分辨率图片
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);//测试缩小  搞个大分辨率图片
 
         /*
             不管纹理UV给多少 先找到[0, 0] [1, 1]所在的位置，然后按规则，水平方向操作 然后垂直方向操作。 或者先垂直操作，再水平操作
@@ -147,10 +147,10 @@ public:
             {1, 1,    10, 10, -10},
             {1, 0,     10, -10, -10},
 
-            {-4, -4,      -10, -10, 10},
-            {-4, 4,       -10, 10, 10},
-            {4, 4,        10, 10, 10},
-            {4, -4,       10, -10, 10},
+            {0, 0,      -10, -10, 10},
+            {0, 1,      -10, 10, 10},
+            {1, 1,      10, 10, 10},
+            {1, 0,      10, -10, 10},
 
             {0, 0,      10 ,- 10, -10, },
             {0, 1,      10 ,- 10, 10,  },
@@ -182,18 +182,23 @@ public:
         glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u);
 #endif
         glMatrixMode(GL_MODELVIEW);
-        glScaled(40, 40, 1);
+        glScaled(20, 20, 1);
         glTranslated(10, 0, 0);
         for (int i = 0; i < 6; i++) {
             glBindTexture(GL_TEXTURE_2D, m_textureId[i]);
             glDrawArrays(GL_QUADS, 4*i, 4);
         }
 
-        glTranslated(-21, 0, 0);
-        for (int i = 0; i < 6; i++) {
-            glBindTexture(GL_TEXTURE_2D, m_textureId[i]);
-            glDrawArrays(GL_QUADS, 4 * i, 4);
-        }
+        glScaled(0.4, 0.4, 1);
+        glTranslated(-75, 0, 0);
+        glBindTexture(GL_TEXTURE_2D, m_textureId[2]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glDrawArrays(GL_QUADS, 0, 4);
+
+        glTranslated(-25, 0, 0);
+        glBindTexture(GL_TEXTURE_2D, m_textureId[2]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glDrawArrays(GL_QUADS, 0, 4);
 
         glc.swapBuffer();
     }
