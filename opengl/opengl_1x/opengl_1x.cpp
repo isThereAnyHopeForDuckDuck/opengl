@@ -96,11 +96,14 @@ public:
             pixels[i + 2] = temp;
         }
         glBindTexture(GL_TEXTURE_2D, m_textureId[indexs]);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
+#if 0
         // 前三个参数  纹理的类型。
         // 后面的参数  输入图片的参数   边框参数，应该被设置为0
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 
             width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
+#else
+        gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+#endif
         FreeImage_Unload(dib);
         return      true;
     }
@@ -112,7 +115,19 @@ public:
         glBindTexture(GL_TEXTURE_2D, texId);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);//测试放大  搞个小分辨率图片
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);//测试缩小  搞个大分辨率图片
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);//测试缩小  搞个大分辨率图片
+        /*
+            关于mipmap的几点说明
+            1. mipmap 是针对缩小的场景。
+                如果一张纹理，需要频繁的缩小，那么mipmap可以提高效率，以空间换时间。
+                如果一张纹理，需要频繁的放大，那么你应该加载大分辨率的纹理。
+                这就是为什么learnopengl说，放大不适用于mipmap.
+            2. GL_LINEAR_MIPMAP_LINEAR 
+                MIPMAP 后的参数，代表生成纹理的方式。 NEAREST就是用现成的，最接近的那张纹理。LINEAR是两张纹理线性插值。
+                对于GL_xx_MIPMAP_NEAREST,纹理是mipmap生成的，GL后的参数，代表从这个纹理采样的方式。
+                对于GL_xx_MIPMAP_LINEAR,纹理是2张mipmap生成的纹理线性插值得到的，GL后的参数，代表插值采样时，采样的方式。
+                    这种方式生成的纹理，直接就能用的，不会再采样了。
+        */
 
         /*
             不管纹理UV给多少 先找到[0, 0] [1, 1]所在的位置，然后按规则，水平方向操作 然后垂直方向操作。 或者先垂直操作，再水平操作
@@ -192,12 +207,11 @@ public:
         glScaled(0.4, 0.4, 1);
         glTranslated(-75, 0, 0);
         glBindTexture(GL_TEXTURE_2D, m_textureId[2]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glDrawArrays(GL_QUADS, 0, 4);
 
         glTranslated(-25, 0, 0);
+        glScaled(2, 2, 1);
         glBindTexture(GL_TEXTURE_2D, m_textureId[2]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glDrawArrays(GL_QUADS, 0, 4);
 
         glc.swapBuffer();
