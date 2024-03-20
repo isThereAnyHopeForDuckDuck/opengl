@@ -12,7 +12,22 @@
 #include <math.h>
 
 #include <vector>
+#include <map>
 #include "freeimage.h"
+
+struct uvCoord {
+    float lbu;
+    float lbv;
+
+    float ltu;
+    float ltv;
+
+    float rtu;
+    float rtv;
+
+    float rbu;
+    float rbv;
+};
 
 class sampleWindow : public openglWindow {
 private:
@@ -21,8 +36,9 @@ private:
     GLContext glc;
 
     uint32_t m_textureId[8] = {0};
+    uint8_t m_texNum = 1;
     const uint8_t* m_textureSrc[8] = {
-        (const uint8_t*)"D:\\lr\\code\\res\\d.jpeg",
+        (const uint8_t*)"C:\\ccli\\resource\\image\\action.jpeg",
         (const uint8_t*)"D:\\lr\\code\\res\\m.jpeg",
         (const uint8_t*)"D:\\lr\\code\\res\\q.jpeg",
         (const uint8_t*)"D:\\lr\\code\\res\\x.jpeg",
@@ -30,12 +46,12 @@ private:
         (const uint8_t*)"D:\\lr\\code\\res\\L.jpeg",
     };
 
+    std::map<int, uvCoord> m_uv;
 public:
     ~sampleWindow() {
     }
     virtual void openglUninit() override{
-        glDeleteTextures(6, m_textureId);
-
+        glDeleteTextures(m_texNum, m_textureId);
     }
     sampleWindow(HINSTANCE hInstance, int nCmdShow) :openglWindow(hInstance, nCmdShow) {
 
@@ -62,17 +78,36 @@ public:
 
         glEnable(GL_TEXTURE_2D);
         
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < m_texNum; i++) {
             m_textureId[i] = createTexture();
             textureImage(i);
         }
-        glActiveTextureARB(GL_TEXTURE0_ARB);
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
+        
+        //计算动作帧的uv坐标
+        int rowCnt = 5, colCnt = 5;
+        float width = 1.0 / colCnt, height = 1.0 / rowCnt;
+        int index = 0;
 
-        glActiveTextureARB(GL_TEXTURE1_ARB);
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, m_textureId[1]);
+        for (int r = 0; r < rowCnt-1; r++) {
+            for (int c = 0; c < colCnt; c++) {
+                uvCoord point;
+                point.ltu = c * width;
+                point.ltv = 1 - r * height;
+
+                point.lbu = point.ltu;
+                point.lbv = point.ltv - height;
+
+                point.rtu = point.ltu + width;
+                point.rtv = point.ltv;
+
+                point.rbu = point.rtu;
+                point.rbv = point.lbv;
+
+                std::pair<int, uvCoord> uv = std::make_pair(index, point);
+                m_uv.emplace(uv);
+                index++;
+            }
+        }
     }
     bool textureImage(int indexs) {
         const char* fileName = (const char*)m_textureSrc[indexs];
@@ -160,26 +195,29 @@ public:
             {1, 1,  1.5, 1,    200, 200, -200},
             {1, 0,  1.5, 0,     200, -200, -200},
         };
-        static float step = 0.1;
-        step += 0.01;
-        for (int i = 0; i < 4; i++) {
-            renderPoint[i].u1 += step;
-            renderPoint[i].u -= step;
-        }
+
+        static int step = 0;
+        static int seq = 1;
+        step++;
+        seq += step % 6 / 5;
+        uvCoord uv = m_uv.at(seq%20);
+
+        renderPoint[0].u = uv.lbu;
+        renderPoint[0].v = uv.lbv;
+        renderPoint[1].u = uv.ltu;
+        renderPoint[1].v = uv.ltv;
+        renderPoint[2].u = uv.rtu;
+        renderPoint[2].v = uv.rtv;
+        renderPoint[3].u = uv.rbu;
+        renderPoint[3].v = uv.rbv;
 
         glVertexPointer(3, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].x);
         glEnableClientState(GL_VERTEX_ARRAY);
-        
 
-        glClientActiveTextureARB(GL_TEXTURE1_ARB); 
         glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        
-        glClientActiveTextureARB(GL_TEXTURE0_ARB);
-        glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u1);
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-        //glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
+        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
         glDrawArrays(GL_QUADS, 0, 4);
 
         glc.swapBuffer();
