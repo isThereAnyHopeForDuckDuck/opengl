@@ -22,12 +22,12 @@ private:
 
     uint32_t m_textureId[8] = {0};
     const uint8_t* m_textureSrc[8] = {
-        (const uint8_t*)"D:\\lr\\code\\res\\d.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\m.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\q.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\bat.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\j.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\L.jpeg",
+        (const uint8_t*)"D:\\lr\\code\\res\\1.bmp",
+        (const uint8_t*)"D:\\lr\\code\\res\\2.bmp",
+        (const uint8_t*)"D:\\lr\\code\\res\\3.bmp",
+        (const uint8_t*)"D:\\lr\\code\\res\\4.bmp",
+        (const uint8_t*)"D:\\lr\\code\\res\\5.bmp",
+        (const uint8_t*)"D:\\lr\\code\\res\\5.bmp",
     };
     uint8_t* m_textureRandom;
     uint32_t m_randomTextureWidth = 128, m_randomTextureHeight = 160;
@@ -95,12 +95,22 @@ public:
             pixels[i] = pixels[i + 2];
             pixels[i + 2] = temp;
         }
-        glBindTexture(GL_TEXTURE_2D, m_textureId[indexs]);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
-#if 0
+        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
+#if 1
         // 前三个参数  纹理的类型。
         // 后面的参数  输入图片的参数   边框参数，应该被设置为0
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 
-            width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        if (indexs == 0) {
+            gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        }
+        else {
+            glTexImage2D(GL_TEXTURE_2D, indexs, GL_RGBA,
+                width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+            GLenum error = glGetError();
+            if (error != GL_NO_ERROR) {
+                return      false;
+            }
+        }
+
 #else
         gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 #endif
@@ -116,22 +126,7 @@ public:
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);//测试放大  搞个小分辨率图片
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);//测试缩小  搞个大分辨率图片
-        /*
-            关于mipmap的几点说明
-            1. mipmap 是针对缩小的场景。
-                如果一张纹理，需要频繁的缩小，那么mipmap可以提高效率，以空间换时间。
-                如果一张纹理，需要频繁的放大，那么你应该加载大分辨率的纹理。
-                这就是为什么learnopengl说，放大不适用于mipmap.
-            2. GL_LINEAR_MIPMAP_LINEAR 
-                MIPMAP 后的参数，代表生成纹理的方式。 NEAREST就是用现成的，最接近的那张纹理。LINEAR是两张纹理线性插值。
-                对于GL_xx_MIPMAP_NEAREST,纹理是mipmap生成的，GL后的参数，代表从这个纹理采样的方式。
-                对于GL_xx_MIPMAP_LINEAR,纹理是2张mipmap生成的纹理线性插值得到的，GL后的参数，代表插值采样时，采样的方式。
-                    这种方式生成的纹理，直接就能用的，不会再采样了。
-        */
 
-        /*
-            不管纹理UV给多少 先找到[0, 0] [1, 1]所在的位置，然后按规则，水平方向操作 然后垂直方向操作。 或者先垂直操作，再水平操作
-        */
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -143,7 +138,7 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
 #if 01
-        glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom,  -200, 200);
+        glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom,  -1000, 1000);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         glTranslatef(glRect.right / 2, glRect.bottom / 2, 0);
@@ -157,15 +152,15 @@ public:
         };
             
         pointInfo renderPoint[] = {
-            {0, 0,      -10, -10, -10},
-            {0, 1,     -10, 10, -10},
-            {1, 1,    10, 10, -10},
-            {1, 0,     10, -10, -10},
+            {0, 0,      -200, -200, -200},
+            {0, 1,     -200, 200, -200},
+            {1, 1,    200, 200, -200},
+            {1, 0,     200, -200, -200},
 
-            {0, 0,      -10, -10, 10},
-            {0, 1,      -10, 10, 10},
-            {1, 1,      10, 10, 10},
-            {1, 0,      10, -10, 10},
+            {0, 0,      210, 0, 210},
+            {0, 1,      210, 200, 210},
+            {1, 1,      410, 200, 210},
+            {1, 0,      410, 0, 210},
 
             {0, 0,      10 ,- 10, -10, },
             {0, 1,      10 ,- 10, 10,  },
@@ -196,23 +191,13 @@ public:
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u);
 #endif
-        glMatrixMode(GL_MODELVIEW);
-        glScaled(20, 20, 1);
-        glTranslated(10, 0, 0);
-        for (int i = 0; i < 6; i++) {
-            glBindTexture(GL_TEXTURE_2D, m_textureId[i]);
-            glDrawArrays(GL_QUADS, 4*i, 4);
-        }
 
-        glScaled(0.4, 0.4, 1);
-        glTranslated(-75, 0, 0);
-        glBindTexture(GL_TEXTURE_2D, m_textureId[2]);
+        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glDrawArrays(GL_QUADS, 0, 4);
 
-        glTranslated(-25, 0, 0);
-        glScaled(2, 2, 1);
-        glBindTexture(GL_TEXTURE_2D, m_textureId[2]);
-        glDrawArrays(GL_QUADS, 0, 4);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glDrawArrays(GL_QUADS, 4, 4);
 
         glc.swapBuffer();
     }
