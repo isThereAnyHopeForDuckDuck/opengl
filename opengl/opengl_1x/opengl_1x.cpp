@@ -22,22 +22,23 @@ private:
 
     uint32_t m_textureId[8] = {0};
     const uint8_t* m_textureSrc[8] = {
-        (const uint8_t*)"D:\\lr\\code\\res\\1.bmp",
-        (const uint8_t*)"D:\\lr\\code\\res\\2.bmp",
-        (const uint8_t*)"D:\\lr\\code\\res\\3.bmp",
-        (const uint8_t*)"D:\\lr\\code\\res\\4.bmp",
-        (const uint8_t*)"D:\\lr\\code\\res\\5.bmp",
-        (const uint8_t*)"D:\\lr\\code\\res\\5.bmp",
+        (const uint8_t*)"D:\\lr\\code\\res\\d.jpeg",
+        (const uint8_t*)"D:\\lr\\code\\res\\m.jpeg",
+        (const uint8_t*)"D:\\lr\\code\\res\\q.jpeg",
+        (const uint8_t*)"D:\\lr\\code\\res\\x.jpeg",
+        (const uint8_t*)"D:\\lr\\code\\res\\j.jpeg",
+        (const uint8_t*)"D:\\lr\\code\\res\\L.jpeg",
     };
-    uint8_t* m_textureRandom;
-    uint32_t m_randomTextureWidth = 128, m_randomTextureHeight = 160;
+
 public:
     ~sampleWindow() {
     }
     virtual void openglUninit() override{
         glDeleteTextures(6, m_textureId);
+
     }
     sampleWindow(HINSTANCE hInstance, int nCmdShow) :openglWindow(hInstance, nCmdShow) {
+
         HWND hWnd = m_hWnd;
         RECT cliRect;
         GetClientRect(hWnd, &cliRect);
@@ -89,28 +90,23 @@ public:
         int     width = FreeImage_GetWidth(dib);
         int     height = FreeImage_GetHeight(dib);
 
+
         for (int i = 0; i < width * height * 4; i += 4)
         {
             BYTE temp = pixels[i];
             pixels[i] = pixels[i + 2];
             pixels[i + 2] = temp;
         }
-        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
+        glBindTexture(GL_TEXTURE_2D, m_textureId[indexs]);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
 #if 1
         // 前三个参数  纹理的类型。
         // 后面的参数  输入图片的参数   边框参数，应该被设置为0
-        if (indexs == 0) {
-            gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+            width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR) {
+            return      false;
         }
-        else {
-            glTexImage2D(GL_TEXTURE_2D, indexs, GL_RGBA,
-                width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-            GLenum error = glGetError();
-            if (error != GL_NO_ERROR) {
-                return      false;
-            }
-        }
-
 #else
         gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 #endif
@@ -125,9 +121,9 @@ public:
         glBindTexture(GL_TEXTURE_2D, texId);//将texID绑定  意味着之后的GL_TEXTURE_2D操作，都是对texId进行
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);//测试放大  搞个小分辨率图片
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);//测试缩小  搞个大分辨率图片
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//测试缩小  搞个大分辨率图片
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
         return texId;
@@ -191,13 +187,13 @@ public:
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u);
 #endif
+        glMatrixMode(GL_TEXTURE);
+        //glLoadIdentity();
+        glTranslatef(1.01, 1.01, 1);
+        glMatrixMode(GL_MODELVIEW);
 
         glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glDrawArrays(GL_QUADS, 0, 4);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glDrawArrays(GL_QUADS, 4, 4);
 
         glc.swapBuffer();
     }
