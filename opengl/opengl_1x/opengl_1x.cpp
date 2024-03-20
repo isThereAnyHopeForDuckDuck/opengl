@@ -66,7 +66,13 @@ public:
             m_textureId[i] = createTexture();
             textureImage(i);
         }
+        glActiveTextureARB(GL_TEXTURE0_ARB);
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
 
+        glActiveTextureARB(GL_TEXTURE1_ARB);
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, m_textureId[1]);
     }
     bool textureImage(int indexs) {
         const char* fileName = (const char*)m_textureSrc[indexs];
@@ -144,55 +150,36 @@ public:
 
         struct pointInfo {
             float u, v;
+            float u1, v1;
             float x, y, z;
         };
             
         pointInfo renderPoint[] = {
-            {0, 0,      -200, -200, -200},
-            {0, 1,     -200, 200, -200},
-            {1, 1,    200, 200, -200},
-            {1, 0,     200, -200, -200},
-
-            {0, 0,      210, 0, 210},
-            {0, 1,      210, 200, 210},
-            {1, 1,      410, 200, 210},
-            {1, 0,      410, 0, 210},
-
-            {0, 0,      10 ,- 10, -10, },
-            {0, 1,      10 ,- 10, 10,  },
-            {1, 1,      10, 10, 10,   },
-            {1, 0,      10, 10, -10,  },
-
-            {0, 0,      -10 ,-10, -10, },
-            {0, 1,      -10 ,-10, 10,  },
-            {1, 1,      -10, 10, 10,   },
-            {1, 0,      -10, 10, -10,  },
-
-            {0, 0,      -10,-10 , -10, },
-            {0, 1,      -10,-10 , 10,  },
-            {1, 1,      10, -10, 10,   },
-            {1, 0,      10, -10, -10,  },
-
-            {0, 0,      -10, 10 , -10, },
-            {0, 1,      -10, 10 , 10,  },
-            {1, 1,      10,  10, 10,   },
-            {1, 0,      10,  10, -10,  },
+            {0, 0,  0.5, 0,      -200, -200, -200},
+            {0, 1,  0.5, 1,     -200, 200, -200},
+            {1, 1,  1.5, 1,    200, 200, -200},
+            {1, 0,  1.5, 0,     200, -200, -200},
         };
-#if 0
-        glInterleavedArrays(GL_C4UB_V3F, sizeof(pointInfo), renderPoint);
-#else
-        glEnableClientState(GL_VERTEX_ARRAY);
+        static float step = 0.1;
+        step += 0.01;
+        for (int i = 0; i < 4; i++) {
+            renderPoint[i].u1 += step;
+            renderPoint[i].u -= step;
+        }
+
         glVertexPointer(3, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].x);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        
 
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glClientActiveTextureARB(GL_TEXTURE1_ARB); 
         glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u);
-#endif
-        glMatrixMode(GL_TEXTURE);
-        //glLoadIdentity();
-        glTranslatef(1.01, 1.01, 1);
-        glMatrixMode(GL_MODELVIEW);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        
+        glClientActiveTextureARB(GL_TEXTURE0_ARB);
+        glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u1);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
+        //glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
         glDrawArrays(GL_QUADS, 0, 4);
 
         glc.swapBuffer();
