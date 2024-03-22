@@ -65,7 +65,7 @@ public:
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
 
-        glEnable(GL_DEPTH_TEST);
+ //       glEnable(GL_DEPTH_TEST);
 
         glEnable(GL_TEXTURE_2D);
         
@@ -172,13 +172,18 @@ public:
         seq++;
         if (seq%30 == 0) {
             for (int i = 0; i < m_pointCnt; i++) {
-                m_point[i].s = { rand() % 200, rand() % 200, rand() % 200 };
+                m_point[i].s = { rand() % 364, rand() % 364, rand() % 364 };
+                m_point[i].r = rand() % 255;
+                m_point[i].g = rand() % 255;
+                m_point[i].b = rand() % 255;
+                m_point[i].a = 255;
             }
         }
 
-
         glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &m_point[0].s.x);
         glEnableClientState(GL_VERTEX_ARRAY);
+        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointCoord), &m_point[0].r);
+        glEnableClientState(GL_COLOR_ARRAY);
 
         glEnable(GL_POINT_SPRITE_ARB);
 
