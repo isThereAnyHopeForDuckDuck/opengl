@@ -15,18 +15,13 @@
 #include <map>
 #include "freeimage.h"
 
-struct uvCoord {
-    float lbu;
-    float lbv;
-
-    float ltu;
-    float ltv;
-
-    float rtu;
-    float rtv;
-
-    float rbu;
-    float rbv;
+struct pointCoord {
+    CELL::float3 s;
+    CELL::float3 e;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
 };
 
 class sampleWindow : public openglWindow {
@@ -38,15 +33,11 @@ private:
     uint32_t m_textureId[8] = {0};
     uint8_t m_texNum = 1;
     const uint8_t* m_textureSrc[8] = {
-        (const uint8_t*)"C:\\ccli\\resource\\image\\action.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\m.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\q.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\x.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\j.jpeg",
-        (const uint8_t*)"D:\\lr\\code\\res\\L.jpeg",
+        (const uint8_t*)"D:\\lr\\code\\res\\1.png",
     };
 
-    std::map<int, uvCoord> m_uv;
+    static const uint8_t m_pointCnt = 100;
+    pointCoord m_point[m_pointCnt];
 public:
     ~sampleWindow() {
     }
@@ -82,31 +73,10 @@ public:
             m_textureId[i] = createTexture();
             textureImage(i);
         }
-        
-        //计算动作帧的uv坐标
-        int rowCnt = 5, colCnt = 5;
-        float width = 1.0 / colCnt, height = 1.0 / rowCnt;
-        int index = 0;
 
-        for (int r = 0; r < rowCnt-1; r++) {
-            for (int c = 0; c < colCnt; c++) {
-                uvCoord point;
-                point.ltu = c * width;
-                point.ltv = 1 - r * height;
-
-                point.lbu = point.ltu;
-                point.lbv = point.ltv - height;
-
-                point.rtu = point.ltu + width;
-                point.rtv = point.ltv;
-
-                point.rbu = point.rtu;
-                point.rbv = point.lbv;
-
-                std::pair<int, uvCoord> uv = std::make_pair(index, point);
-                m_uv.emplace(uv);
-                index++;
-            }
+        for (int i = 0; i < m_pointCnt; i++) {
+            m_point[i].s = { 0, 0, 0 };
+            m_point[i].s = { i, 0, 0 };
         }
     }
     bool textureImage(int indexs) {
@@ -171,9 +141,25 @@ public:
     }
 
     void render() override {
-        glClearColor(0, 0, 0, 1);
+        glClearColor(0.3, 0.3, 0.3, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+        float maxSize = 0;
+        glGetFloatv(GL_POINT_SIZE_MAX_ARB, &maxSize);
+        if (maxSize > 100) {
+            maxSize = 100;
+        }
+
+        glPointSize(maxSize);
+        glPointParameterfARB(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 64);
+        glPointParameterfARB(GL_POINT_SIZE_MIN_ARB, 1);
+        glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, maxSize);
+
+        glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
+
 #if 01
         glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom,  -1000, 1000);
         glMatrixMode(GL_MODELVIEW);
@@ -182,43 +168,21 @@ public:
 #else
         gluPerspective(45, 16.0 / 9, 1, 101);
 #endif
+        static int seq = 0;
+        seq++;
+        if (seq%30 == 0) {
+            for (int i = 0; i < m_pointCnt; i++) {
+                m_point[i].s = { rand() % 200, rand() % 200, rand() % 200 };
+            }
+        }
 
-        struct pointInfo {
-            float u, v;
-            float u1, v1;
-            float x, y, z;
-        };
-            
-        pointInfo renderPoint[] = {
-            {0, 0,  0.5, 0,      -200, -200, -200},
-            {0, 1,  0.5, 1,     -200, 200, -200},
-            {1, 1,  1.5, 1,    200, 200, -200},
-            {1, 0,  1.5, 0,     200, -200, -200},
-        };
 
-        static int step = 0;
-        static int seq = 1;
-        step++;
-        seq += step % 6 / 5;
-        uvCoord uv = m_uv.at(seq%20);
-
-        renderPoint[0].u = uv.lbu;
-        renderPoint[0].v = uv.lbv;
-        renderPoint[1].u = uv.ltu;
-        renderPoint[1].v = uv.ltv;
-        renderPoint[2].u = uv.rtu;
-        renderPoint[2].v = uv.rtv;
-        renderPoint[3].u = uv.rbu;
-        renderPoint[3].v = uv.rbv;
-
-        glVertexPointer(3, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].x);
+        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &m_point[0].s.x);
         glEnableClientState(GL_VERTEX_ARRAY);
 
-        glTexCoordPointer(2, GL_FLOAT, sizeof(pointInfo), &renderPoint[0].u);
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glEnable(GL_POINT_SPRITE_ARB);
 
-        glBindTexture(GL_TEXTURE_2D, m_textureId[0]);
-        glDrawArrays(GL_QUADS, 0, 4);
+        glDrawArrays(GL_POINTS, 0, m_pointCnt);
 
         glc.swapBuffer();
     }
