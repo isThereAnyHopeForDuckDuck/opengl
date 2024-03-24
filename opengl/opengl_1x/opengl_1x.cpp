@@ -14,10 +14,12 @@
 #include <vector>
 #include <map>
 #include "freeimage.h"
+#include "PixelBuffer.h"
 
 struct pointCoord {
     CELL::float3 coord;
-    uint8_t r, g, b, a;
+    CELL::float2 uv;
+    CELL::float4 color;
 };
 
 class sampleWindow : public openglWindow {
@@ -25,33 +27,16 @@ private:
 
     RECT glRect;
     GLContext glc;
+    PixelBuffer m_pixelBuffer;
 
     uint32_t m_textureId[8] = {0};
     uint8_t m_texNum = 1;
     const uint8_t* m_textureSrc[8] = {
-        (const uint8_t*)"C:\\Users\\42033\\Pictures\\image.png",
+        (const uint8_t*)"C:\\ccli\\resource\\image\\num.png",
     };
 
-    uint32_t m_vbo[8] = {0};
-    uint8_t  m_vboNum = 1;
+    uint32_t m_tempTex;
 
-    uint32_t m_ebo[8] = { 0 };
-    uint8_t  m_eboNum = 1;
-    uint8_t  m_element[32] = {
-        0, 1, 2,
-        0, 1, 3,
-        1, 2, 3,
-        0, 2, 3
-    };
-    static const uint8_t m_pointCnt = 6;
-    pointCoord m_point[m_pointCnt] = {
-        { {-1, 0, -1}, 255, 0, 0, 1},
-        { {1, 0, -1}, 0, 255, 0, 1},
-        { {0, 1, -1}, 0, 0, 255, 1},
-        { {0, 0.5, 0}, 255, 255, 255},
-        { {0, 0.2, 0}, 255, 255, 255},
-        { {0, 0.8, 0}, 255, 255, 255},
-    };
 public:
     ~sampleWindow() {
     }
@@ -72,60 +57,23 @@ public:
         glc.setup(hWnd, GetDC(hWnd));
         glewInit();
         wglSwapIntervalEXT(1);
-
-        //opengl 
+       
+        m_pixelBuffer.setup(hWnd, glc.hdc(), glc.hglrc(), glRect.right, glRect.bottom);
+        glc.makeCurrent();
+        
         glViewport(glRect.left, glRect.top, glRect.right, glRect.bottom);
 
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-
-
-        for (int i = 0; i < m_vboNum; i++) {
-            m_vbo[i] = createVBO();
+        glEnable(GL_TEXTURE_2D);
+        for (int i = 0; i < m_texNum; i++) {
+            m_textureId[i] = createTexture();
+            textureImage(i);
         }
-
-        for (int i = 0; i < m_eboNum; i++) {
-            m_ebo[i] = createEBO();
-        }
-#if 01
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_COLOR_ARRAY);
-
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo[0]);
-        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), (float*)0);
-        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointCoord), (float*)12);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#else
-        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &m_point[0].s.x);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointCoord), &m_point[0].r);
-        glEnableClientState(GL_COLOR_ARRAY);
-#endif
+        
+        m_tempTex = createTexture();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+            glRect.right, glRect.bottom, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     }
 
-    uint32_t createVBO() {
-        uint32_t vboId;
-
-        glGenBuffers(1, &vboId);
-        glBindBuffer(GL_ARRAY_BUFFER, vboId);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(m_point), m_point, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        return vboId;
-    }
-
-    uint32_t createEBO() {
-        uint32_t eboId;
-
-        glGenBuffers(1, &eboId);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_element), m_element, GL_STATIC_DRAW);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-        return eboId;
-    }
     bool textureImage(int indexs) {
         const char* fileName = (const char*)m_textureSrc[indexs];
         //1 获取图片格式
@@ -186,33 +134,71 @@ public:
 
         return texId;
     }
-
-    void render() override {
+    void renderImg(GLuint tex, bool bRot) {
         glClearColor(0.3, 0.3, 0.3, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-#if 01
-        glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom,  -1000, 1000);
-        glMatrixMode(GL_MODELVIEW);
+        glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glTranslatef(glRect.right / 2, glRect.bottom / 2, 0);
-#else
-        gluPerspective(45, 16.0 / 9, 1, 101);
-#endif
+        glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom, -1000, 1000);
 
-#if 01
-        //glBufferSubData(GL_ARRAY_BUFFER, 0, m_pointCnt / 3, m_point);
-        
-        uint8_t point = 3 + rand() % 2;
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo[0]);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 5, 1, &point);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 8, 1, &point);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 11, 1, &point);
-#endif
-        glMatrixMode(GL_MODELVIEW);
-        glScaled(100, 100, 100);
-        
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_BYTE, 0);//没有绑定EBO 第四个参数可以直接填数组
+        pointCoord point[] = {
+            { {100, 100, -1}, {0, 0}, {1, 0, 0, 1} },
+            { {100, 280, -1}, {0, 1}, {0, 1, 0, 1} },
+            { {420, 280, -1}, {1, 1}, {0, 0, 1, 1} },
+            { {420, 100, -1}, {1, 0}, {1, 1, 1, 1} },
+        };
+
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &point[0].coord.x);
+        glTexCoordPointer(2, GL_FLOAT, sizeof(pointCoord), &point[0].uv.x);
+
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glDrawArrays(GL_QUADS, 0, 4);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    }
+    void renderRect(){
+        glClearColor(0.3, 0.3, 0.3, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom, -1000, 1000);
+
+        pointCoord point[] = {
+            { {0, glRect.bottom, -1}, {0, 0}, {1, 0, 0, 1} },
+            { {0, glRect.top, -1}, {0, 1}, {0, 1, 0, 1} },
+            { {glRect.right, glRect.top, -1}, {1, 1}, {0, 0, 1, 1} },
+            { {glRect.right, glRect.bottom, -1}, {1, 0}, {(float)(rand()%255)/255, (float)(rand() % 255) / 255, (float)(rand() % 255) / 255, 1} },
+        };
+
+        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &point[0].coord.x);
+        glColorPointer(4, GL_FLOAT, sizeof(pointCoord), &point[0].color.x);
+
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDrawArrays(GL_QUADS, 0, 4);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
+    }
+
+    void render() override {
+        m_pixelBuffer.makeCurrent();
+        renderRect();
+
+        glBindTexture(GL_TEXTURE_2D, m_tempTex);
+        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, m_pixelBuffer._width / 4, m_pixelBuffer._height / 4, 0, 0, m_pixelBuffer._width/2, m_pixelBuffer._height/2);
+
+        glc.makeCurrent();
+
+        renderImg(m_tempTex, false);
 
         glc.swapBuffer();
     }

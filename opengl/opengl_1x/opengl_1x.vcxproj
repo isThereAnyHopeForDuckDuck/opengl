@@ -135,6 +135,7 @@
     <ClInclude Include="GLContext.h" />
     <ClInclude Include="openglWindow.h" />
     <ClInclude Include="opengl_1x.h" />
+    <ClInclude Include="PixelBuffer.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>

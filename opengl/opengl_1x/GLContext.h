@@ -27,6 +27,19 @@ public:
     {
         shutdown();
     }
+
+    HDC hdc() const {
+        return _hDC;
+    }
+
+    HGLRC hglrc() const {
+        return _hRC;
+    }
+
+    void    makeCurrent()
+    {
+        wglMakeCurrent(_hDC, _hRC);
+    }
     /**
     *   ≥ı ºªØGL
     */
