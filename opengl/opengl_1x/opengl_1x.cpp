@@ -33,8 +33,11 @@ private:
     uint32_t m_textureId[8] = {0};
     uint8_t m_texNum = 1;
     const uint8_t* m_textureSrc[8] = {
-        (const uint8_t*)"D:\\lr\\code\\res\\1.png",
+        (const uint8_t*)"C:\\Users\\42033\\Pictures\\image.png",
     };
+
+    uint32_t m_vbo[8] = {0};
+    uint8_t  m_vboNum = 1;
 
     static const uint8_t m_pointCnt = 100;
     pointCoord m_point[m_pointCnt];
@@ -75,10 +78,45 @@ public:
         }
 
         for (int i = 0; i < m_pointCnt; i++) {
-            m_point[i].s = { 0, 0, 0 };
-            m_point[i].s = { i, 0, 0 };
+            m_point[i].s = { rand() % 364, rand() % 364, rand() % 364 };
+            m_point[i].r = rand() % 255;
+            m_point[i].g = rand() % 255;
+            m_point[i].b = rand() % 255;
+            m_point[i].a = 255;
         }
+
+
+        for (int i = 0; i < m_vboNum; i++) {
+            m_vbo[i] = createVBO();
+        }
+
+#if 01
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
+        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), (float*)0);
+        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointCoord), (float*)24);
+
+#else
+        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &m_point[0].s.x);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointCoord), &m_point[0].r);
+        glEnableClientState(GL_COLOR_ARRAY);
+#endif
     }
+
+    uint32_t createVBO() {
+        uint32_t vboId;
+
+        glGenBuffers(1, &vboId);
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(m_point), m_point, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        return vboId;
+    }
+
     bool textureImage(int indexs) {
         const char* fileName = (const char*)m_textureSrc[indexs];
         //1 获取图片格式
@@ -180,10 +218,9 @@ public:
             }
         }
 
-        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &m_point[0].s.x);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointCoord), &m_point[0].r);
-        glEnableClientState(GL_COLOR_ARRAY);
+#if 1
+        glBufferSubData(GL_ARRAY_BUFFER, 0, m_pointCnt / 3, m_point);
+#endif
 
         glEnable(GL_POINT_SPRITE_ARB);
 
