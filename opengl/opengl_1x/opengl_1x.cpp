@@ -143,10 +143,10 @@ public:
         glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom, -1000, 1000);
 
         pointCoord point[] = {
-            { {100, 100, -1}, {0, 0}, {1, 0, 0, 1} },
-            { {100, 280, -1}, {0, 1}, {0, 1, 0, 1} },
-            { {420, 280, -1}, {1, 1}, {0, 0, 1, 1} },
-            { {420, 100, -1}, {1, 0}, {1, 1, 1, 1} },
+            { {glRect.left, glRect.bottom, -1}, {0, 0}, {1, 0, 0, 1} },
+            { {glRect.left, glRect.top, -1}, {0, 1}, {0, 1, 0, 1} },
+            { {glRect.right, glRect.top, -1}, {1, 1}, {0, 0, 1, 1} },
+            { {glRect.right, glRect.bottom, -1}, {1, 0}, {1, 1, 1, 1} },
         };
 
         glEnableClientState(GL_VERTEX_ARRAY);
@@ -155,6 +155,7 @@ public:
         glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &point[0].coord.x);
         glTexCoordPointer(2, GL_FLOAT, sizeof(pointCoord), &point[0].uv.x);
 
+        glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, tex);
         glDrawArrays(GL_QUADS, 0, 4);
 
@@ -191,10 +192,11 @@ public:
 
     void render() override {
         m_pixelBuffer.makeCurrent();
-        renderRect();
+        //renderRect();
+        renderImg(m_textureId[0], false);
 
         glBindTexture(GL_TEXTURE_2D, m_tempTex);
-        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, m_pixelBuffer._width / 4, m_pixelBuffer._height / 4, 0, 0, m_pixelBuffer._width/2, m_pixelBuffer._height/2);
+        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, m_pixelBuffer._width, m_pixelBuffer._height);
 
         glc.makeCurrent();
 
