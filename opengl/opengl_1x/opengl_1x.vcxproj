@@ -131,6 +131,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CELLMath.hpp" />
+    <ClInclude Include="FrameBufferObject.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GLContext.h" />
     <ClInclude Include="openglWindow.h" />

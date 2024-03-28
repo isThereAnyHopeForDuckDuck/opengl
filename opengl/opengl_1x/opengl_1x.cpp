@@ -15,6 +15,7 @@
 #include <map>
 #include "freeimage.h"
 #include "PixelBuffer.h"
+#include "FrameBufferObject.h"
 
 struct pointCoord {
     CELL::float3 coord;
@@ -25,9 +26,12 @@ struct pointCoord {
 class sampleWindow : public openglWindow {
 private:
 
-    RECT glRect;
+    //RECT glRect;
     GLContext glc;
     PixelBuffer m_pixelBuffer;
+    FrameBufferObject m_fbo;
+
+    int m_x, m_y, m_w, m_h;
 
     uint32_t m_textureId[8] = {0};
     uint8_t m_texNum = 1;
@@ -43,25 +47,36 @@ public:
     virtual void openglUninit() override{
         glDeleteTextures(m_texNum, m_textureId);
     }
+    virtual void onResize() override{
+        RECT cliRect;
+        GetClientRect(m_hWnd, &cliRect);
+        //这个坐标是图片坐标
+        m_x = cliRect.left;
+        m_y = cliRect.top;
+        m_w = cliRect.right;
+        m_h = cliRect.bottom;
+        glViewport(m_x, m_y, m_w, m_h);
+    }
     sampleWindow(HINSTANCE hInstance, int nCmdShow) :openglWindow(hInstance, nCmdShow) {
 
         HWND hWnd = m_hWnd;
-        RECT cliRect;
-        GetClientRect(hWnd, &cliRect);
-
-        glRect.left = cliRect.left + 10;
-        glRect.right = cliRect.right - 10;
-        glRect.top = cliRect.top - 10;
-        glRect.bottom = cliRect.bottom + 10;
 
         glc.setup(hWnd, GetDC(hWnd));
         glewInit();
         wglSwapIntervalEXT(1);
        
-        m_pixelBuffer.setup(hWnd, glc.hdc(), glc.hglrc(), glRect.right, glRect.bottom);
+        //m_pixelBuffer.setup(hWnd, glc.hdc(), glc.hglrc(), glRect.right, glRect.bottom);
+        m_fbo.setup(640, 480);
         glc.makeCurrent();
         
-        glViewport(glRect.left, glRect.top, glRect.right, glRect.bottom);
+        RECT cliRect;
+        GetClientRect(hWnd, &cliRect);
+        //这个坐标是图片坐标
+        m_x = cliRect.left;
+        m_y = cliRect.top;
+        m_w = cliRect.right;
+        m_h = cliRect.bottom;
+        glViewport(m_x, m_y, m_w, m_h);
 
         glEnable(GL_TEXTURE_2D);
         for (int i = 0; i < m_texNum; i++) {
@@ -71,7 +86,7 @@ public:
         
         m_tempTex = createTexture();
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-            glRect.right, glRect.bottom, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+            640, 480, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     }
 
     bool textureImage(int indexs) {
@@ -134,19 +149,21 @@ public:
 
         return texId;
     }
-    void renderImg(GLuint tex, bool bRot) {
-        glClearColor(0.3, 0.3, 0.3, 1);
+    void renderImg(GLuint tex, int x, int y, int w, int h, float grey) {
+        glClearColor(grey, grey, grey, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom, -1000, 1000);
+        glOrtho(m_x, m_w, m_y, m_h, -1000, 1000);
 
+        x += m_x;
+        y += m_y;
         pointCoord point[] = {
-            { {glRect.left, glRect.bottom, -1}, {0, 0}, {1, 0, 0, 1} },
-            { {glRect.left, glRect.top, -1}, {0, 1}, {0, 1, 0, 1} },
-            { {glRect.right, glRect.top, -1}, {1, 1}, {0, 0, 1, 1} },
-            { {glRect.right, glRect.bottom, -1}, {1, 0}, {1, 1, 1, 1} },
+            { {x, y, -1},               {0, 0}, {1, 0, 0, 1} },
+            { {x, y + h, -1},         {0, 1}, {0, 1, 0, 1} },
+            { {x + w, y + h, -1},   {1, 1}, {0, 0, 1, 1} },
+            { {x + w, y, -1},         {1, 0}, {1, 1, 1, 1} },
         };
 
         glEnableClientState(GL_VERTEX_ARRAY);
@@ -162,19 +179,21 @@ public:
         glDisableClientState(GL_VERTEX_ARRAY);
         glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     }
-    void renderRect(){
+    void renderRect(int x, int y, int w, int h){
         glClearColor(0.3, 0.3, 0.3, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom, -1000, 1000);
+        glOrtho(m_x, m_w, m_y, m_h, -1000, 1000);
 
+        x += m_x;
+        y += m_y;
         pointCoord point[] = {
-            { {0, glRect.bottom, -1}, {0, 0}, {1, 0, 0, 1} },
-            { {0, glRect.top, -1}, {0, 1}, {0, 1, 0, 1} },
-            { {glRect.right, glRect.top, -1}, {1, 1}, {0, 0, 1, 1} },
-            { {glRect.right, glRect.bottom, -1}, {1, 0}, {(float)(rand()%255)/255, (float)(rand() % 255) / 255, (float)(rand() % 255) / 255, 1} },
+            { {x, y, -1},               {0, 0}, {1, 0, 0, 1} },
+            { {x, y+h, -1},         {0, 1}, {0, 1, 0, 1} },
+            { {x+w, y+h, -1},   {1, 1}, {0, 0, 1, 1} },
+            { {x+w, y, -1},         {1, 0}, {1, 1, 1, 1} },
         };
 
         glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &point[0].coord.x);
@@ -191,16 +210,15 @@ public:
     }
 
     void render() override {
-        m_pixelBuffer.makeCurrent();
-        //renderRect();
-        renderImg(m_textureId[0], false);
-
-        glBindTexture(GL_TEXTURE_2D, m_tempTex);
-        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, m_pixelBuffer._width, m_pixelBuffer._height);
+        m_fbo.begin(m_tempTex);
+        renderImg(m_textureId[0], 10, 10, 640-20, 480-20, 0.3);
+        //renderRect(10, 10, 640-20, 480-20);
+        m_fbo.end();
 
         glc.makeCurrent();
 
-        renderImg(m_tempTex, false);
+        renderImg(m_tempTex, 10, 10, m_w-20, m_h-20, 0.8);
+        //renderRect(10, 10, m_w-20, m_h-20);
 
         glc.swapBuffer();
     }

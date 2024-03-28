@@ -39,6 +39,9 @@
     <ClInclude Include="PixelBuffer.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="FrameBufferObject.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="opengl_1x.cpp">
