@@ -89,6 +89,20 @@ public:
             640, 480, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     }
 
+    bool    save(int w, int h, char* data, size_t length)
+    {
+
+        FIBITMAP* bitmap = FreeImage_Allocate(w, h, 32, 0, 0, 0);
+
+        BYTE* pixels = (BYTE*)FreeImage_GetBits(bitmap);
+
+        memcpy(pixels, data, w * h * 4);
+        bool    bSuccess = FreeImage_Save(FIF_PNG, bitmap, "C:\\ccli\\resource\\image\\xx.png", PNG_DEFAULT);
+
+        FreeImage_Unload(bitmap);
+        return  bSuccess;
+    }
+
     bool textureImage(int indexs) {
         const char* fileName = (const char*)m_textureSrc[indexs];
         //1 获取图片格式
@@ -212,6 +226,15 @@ public:
     void render() override {
         m_fbo.begin(m_tempTex);
         renderImg(m_textureId[0], 10, 10, 640-20, 480-20, 0.3);
+        int     w = m_fbo._width;
+        int     h = m_fbo._height;
+        unsigned char* data = new unsigned char[w * h * 4];
+        memset(data, 0, w * h * 4);
+        glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+        save(w, h, (char*)data, w * h * 4);
+        delete[]data;
+        
         //renderRect(10, 10, 640-20, 480-20);
         m_fbo.end();
 
@@ -219,6 +242,7 @@ public:
 
         renderImg(m_tempTex, 10, 10, m_w-20, m_h-20, 0.8);
         //renderRect(10, 10, m_w-20, m_h-20);
+        
 
         glc.swapBuffer();
     }
