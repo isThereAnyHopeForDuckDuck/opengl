@@ -92,13 +92,13 @@ public:
 
 
         glGenBuffers(2, m_pbo);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
-        glBufferData(GL_PIXEL_PACK_BUFFER, 1920 * 1080 * 4, 0, GL_STREAM_READ);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[0]);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, 1920 * 1080 * 4, 0, GL_STREAM_DRAW);
 
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[1]);
-        glBufferData(GL_PIXEL_PACK_BUFFER, 1920 * 1080 * 4, 0, GL_STREAM_READ);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[1]);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, 1920 * 1080 * 4, 0, GL_STREAM_DRAW);
 
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     }
 
     bool    save(int w, int h, char* data, size_t length)
@@ -240,25 +240,32 @@ public:
 
         clock_t start_time, end_time;
         double bindTime, readTime, mapTime;
-        
-        renderRect(10, 10, m_w-20, m_h-20);
 
-        //glFinish();
+        //绑定纹理
+        glBindTexture(GL_TEXTURE_2D, m_tempTex);
 
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[m_toPbo]);
-        glReadPixels(10, 10, m_w-20, m_h-20, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[m_toCpu]);
-        start_time = clock(); //获取开始执行时间
-        uint8_t* data = (uint8_t*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-        end_time = clock(); //获取结束时间
-        mapTime = (double)(end_time - start_time) / CLOCKS_PER_SEC;
-        if (data) {
-            save(m_w - 20, m_h - 20, (char *)data, (m_w - 20) * (m_h - 20));
+        //绑定PBO
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[0]);
+        //更新纹理
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 10, 10, 110, 110, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+        //更新PBO
+        void* data = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+        if (data)
+        {
+            uint8_t * pdata = (uint8_t*)data;
+            for (int i = 0; i < 100 * 100 * 4; i++) {
+                pdata[i] = rand() % 255;
+            }
         }
-        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-        std::swap(m_toCpu, m_toPbo);
+        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+        renderImg(m_tempTex, 10, 10, m_h-20, m_h-20, 0.5);
+        
+        //write的方式  乒乓球没意义了 不管是glMapBuffer glMapBufferRange glBufferSubData 都是同步的方式
+
+       
         /*
         *   map确实比较耗时间  (map 是为了等glReadPixels的操作，所以才比较耗时，使用glFinsh()阻塞执行glReadPixels的操作
                 就可以看出来)
