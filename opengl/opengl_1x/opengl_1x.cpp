@@ -30,7 +30,8 @@ private:
     GLContext glc;
     PixelBuffer m_pixelBuffer;
     FrameBufferObject m_fbo;
-    uint32_t m_pbo;
+    uint32_t m_pbo[2];
+    uint8_t m_toPbo = 0, m_toCpu = 1;
 
     int m_x, m_y, m_w, m_h;
 
@@ -90,9 +91,13 @@ public:
             640, 480, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
 
-        glGenBuffers(1, &m_pbo);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo);
+        glGenBuffers(2, m_pbo);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[0]);
         glBufferData(GL_PIXEL_PACK_BUFFER, 1920 * 1080 * 4, 0, GL_STREAM_READ);
+
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[1]);
+        glBufferData(GL_PIXEL_PACK_BUFFER, 1920 * 1080 * 4, 0, GL_STREAM_READ);
+
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
     }
 
@@ -238,19 +243,12 @@ public:
         
         renderRect(10, 10, m_w-20, m_h-20);
 
-        start_time = clock(); //获取开始执行时间
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo);
-        end_time = clock(); //获取结束时间
-        bindTime = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+        //glFinish();
 
-        glFinish();
-
-        start_time = clock(); //获取开始执行时间
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[m_toPbo]);
         glReadPixels(10, 10, m_w-20, m_h-20, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glFinish();
-        end_time = clock(); //获取结束时间
-        readTime = (double)(end_time - start_time) / CLOCKS_PER_SEC;
-
+        
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, m_pbo[m_toCpu]);
         start_time = clock(); //获取开始执行时间
         uint8_t* data = (uint8_t*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
         end_time = clock(); //获取结束时间
@@ -259,6 +257,8 @@ public:
             save(m_w - 20, m_h - 20, (char *)data, (m_w - 20) * (m_h - 20));
         }
         glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        std::swap(m_toCpu, m_toPbo);
         /*
         *   map确实比较耗时间  (map 是为了等glReadPixels的操作，所以才比较耗时，使用glFinsh()阻塞执行glReadPixels的操作
                 就可以看出来)
@@ -269,9 +269,9 @@ public:
         *   1. glReadPixels是比较耗时的，所以调用完glReadPixels之后，就执行其他操作
         *   2. 对上一个glReadPixels的结果，进行map操作，此时，glReadPixels操作大概率已经完成，如果没有，阻塞时间也会很短
         *       这样就需要2个PBO
+        *   3.这种方式，map几乎没有阻塞，说明在map时，glReadPixels的操作已经完成了
+        *   其实时间还是一样的，只是没有阻塞了，时间用在别的地方。
         */
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-        
         glc.swapBuffer();
     }
 
