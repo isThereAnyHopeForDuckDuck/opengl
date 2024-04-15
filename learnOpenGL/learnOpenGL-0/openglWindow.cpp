@@ -13,7 +13,7 @@ bool openglWindow::createWindow(int w, int h)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    m_window = glfwCreateWindow(800, 600, "ML_CG_TEST", NULL, NULL);
+    m_window = glfwCreateWindow(w, h, "ML_CG_TEST", NULL, NULL);
     if (m_window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;

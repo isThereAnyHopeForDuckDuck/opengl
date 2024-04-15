@@ -5,49 +5,20 @@
 #include "openglWindow.h"
 #include "shader.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 struct glPoint {
     float x, y, z;
     float r, g, b, a;
+    float u, v;
 };
 
 class glWin : public openglWindow {
-private:
-    void compileShader(uint32_t& shaderId, unsigned int shaderType, const char** pSourceCode) {
-        shaderId = glCreateShader(shaderType);
-        glShaderSource(shaderId, 1, pSourceCode, NULL);
-        glCompileShader(shaderId);
-    }
-
-    bool compileResult(int shaderId) {
-        int  success;
-        char infoLog[512];
-        glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(shaderId, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-            return false;
-        }
-        return true;
-    }
-
-    bool link(uint32_t& programId, uint32_t vertexShader, uint32_t fragShader) {
-        programId = glCreateProgram();
-        glAttachShader(programId, vertexShader);
-        glAttachShader(programId, fragShader);
-        glLinkProgram(programId);
-
-        int  success;
-        char infoLog[512];
-        glGetProgramiv(programId, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetProgramInfoLog(programId, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::VERTEX::LINK_FAILED\n" << infoLog << std::endl;
-            return false;
-        }
-
-        return true;
-    }
 
 public:
 
@@ -58,7 +29,7 @@ public:
             return false;
         }
 
-        glViewport(0, 0, 800, 600);
+        glViewport(0, 0, 1280, 720);
 
         //vbo
         glGenBuffers(1, &m_vbo);
@@ -74,6 +45,41 @@ public:
 
         //shader
         m_shader = std::make_shared<Shader>("D:\\lr\\code\\CG\\learnOpenGL\\learnOpenGL-0\\vertex.glsl", "D:\\lr\\code\\CG\\learnOpenGL\\learnOpenGL-0\\frag.glsl");
+
+        //tex
+        int width, height, channels;
+        stbi_set_flip_vertically_on_load(true);
+
+        for (int i = 0; i < sizeof(m_tex) / sizeof(float); i++) {
+            uint8_t* data = stbi_load(m_texPath[i], &width, &height, &channels, 0);
+            if (nullptr == data) {
+                std::cout << __LINE__ << " stbi load err " << std::endl;
+            }
+
+            glGenTextures(1, &m_tex[i]);
+            glBindTexture(GL_TEXTURE_2D, m_tex[i]);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            if (channels == 4) {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            }
+            else {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            }
+            
+            glGenerateMipmap(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            stbi_image_free(data);
+        }
+
+        for (int i = 0; i < 6; i++) {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, m_tex[i]);
+        }
 
         //vao
         glGenVertexArrays(1, &m_vao);
@@ -92,9 +98,17 @@ public:
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(glPoint), (void*)(3*sizeof(float)) );
         glEnableVertexAttribArray(1);
 
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(glPoint), (void*)(7 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        //matrix
+        m_unitMat = glm::mat4(1.0f);
+
+        glEnable(GL_DEPTH_TEST);
 
         return true;
     }
@@ -106,22 +120,40 @@ public:
     }
 
     void doRender() override {
-        static float greenValue = 0;
-        greenValue += 0.003;
-
-        if (greenValue > 1) {
-            greenValue = 0;
-        }
-
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        m_shader->setFloat("greenValue", greenValue);
         m_shader->use();
-
+        
         glBindVertexArray(m_vao);
         if (m_useEbo) {
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+            //static float angle = -45;
+            //angle += 0.5;
+
+            //glm::mat4 trans;
+            //trans = glm::rotate(m_unitMat, glm::radians(angle), glm::vec3(1.0, 1.0, 1.0));
+
+            glm::mat4 model(1.0f);
+            model = glm::translate(model, glm::vec3(5.0f, 5.0f, -13.0f));
+            unsigned int transformLoc = glGetUniformLocation(m_shader->ID, "model");
+            glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+            glm::mat4 view(1.0f);
+            view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+            transformLoc = glGetUniformLocation(m_shader->ID, "view");
+            glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+            glm::mat4 projection(1.0f);
+            projection = glm::perspective<float>(glm::radians(45.0f), 16 / 9, 0.1f, 100.0f);
+            transformLoc = glGetUniformLocation(m_shader->ID, "projection");
+            glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+            int quadCnt = 6;
+            for (int i = 0; i < quadCnt; i++) {
+                glBindTexture(GL_TEXTURE_2D, m_tex[i]);
+                glUniform1i(glGetUniformLocation(m_shader->ID, "texIdx"), i);
+                glDrawArrays(GL_TRIANGLE_STRIP, i * 4, 4);
+            }
         }
         else {
             glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -130,34 +162,69 @@ public:
     }
 
 private:
-    glPoint m_pointData[4] = {
-        { 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f},   // 右上角
-        { 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f},   // 右下角
-        {-0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f},   // 左下角
-        {-0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f},   // 左上角
+    glPoint m_pointData[24] = {
+
+        { 0.5f, -0.5f,  0.5f,    0.0f, 1.0f, 0.0f, 1.0f,  1, 0},   // 右下角
+        { 0.5f,  0.5f,  0.5f,    1.0f, 0.0f, 0.0f, 1.0f,  1, 1},   // 右上角
+        {-0.5f, -0.5f,  0.5f,    0.0f, 0.0f, 1.0f, 1.0f,  0, 0},   // 左下角
+        {-0.5f,  0.5f,  0.5f,    1.0f, 1.0f, 1.0f, 1.0f,  0, 1},   // 左上角
+
+        { 0.5f, -0.5f,  -0.5f,    0.0f, 1.0f, 0.0f, 1.0f,  1, 0},   // 右下角
+        { 0.5f,  0.5f,  -0.5f,    1.0f, 0.0f, 0.0f, 1.0f,  1, 1},   // 右上角
+        {-0.5f, -0.5f,  -0.5f,    0.0f, 0.0f, 1.0f, 1.0f,  0, 0},   // 左下角
+        {-0.5f,  0.5f,  -0.5f,    1.0f, 1.0f, 1.0f, 1.0f,  0, 1},   // 左上角
+
+        { 0.5f,  0.5f, -0.5f,    0.0f, 1.0f, 0.0f, 1.0f,  1, 0},   // 右下角
+        { 0.5f,  0.5f,  0.5f,    1.0f, 0.0f, 0.0f, 1.0f,  1, 1},   // 右上角
+        { 0.5f, -0.5f, -0.5f,    0.0f, 0.0f, 1.0f, 1.0f,  0, 0},   // 左下角
+        { 0.5f, -0.5f,  0.5f,    1.0f, 1.0f, 1.0f, 1.0f,  0, 1},   // 左上角
+
+        {-0.5f,  0.5f, -0.5f,    0.0f, 1.0f, 0.0f, 1.0f,  1, 0},   // 右下角
+        {-0.5f,  0.5f,  0.5f,    1.0f, 0.0f, 0.0f, 1.0f,  1, 1},   // 右上角
+        {-0.5f, -0.5f, -0.5f,    0.0f, 0.0f, 1.0f, 1.0f,  0, 0},   // 左下角
+        {-0.5f, -0.5f,  0.5f,    1.0f, 1.0f, 1.0f, 1.0f,  0, 1},   // 左上角
+
+        { 0.5f,  0.5f, -0.5f,    0.0f, 1.0f, 0.0f, 1.0f,  1, 0},   // 右下角
+        { 0.5f,  0.5f,  0.5f,    1.0f, 0.0f, 0.0f, 1.0f,  1, 1},   // 右上角
+        {-0.5f,  0.5f, -0.5f,    0.0f, 0.0f, 1.0f, 1.0f,  0, 0},   // 左下角
+        {-0.5f,  0.5f,  0.5f,    1.0f, 1.0f, 1.0f, 1.0f,  0, 1},   // 左上角
+
+        { 0.5f, -0.5f, -0.5f,    0.0f, 1.0f, 0.0f, 1.0f,  1, 0},   // 右下角
+        { 0.5f, -0.5f,  0.5f,    1.0f, 0.0f, 0.0f, 1.0f,  1, 1},   // 右上角
+        {-0.5f, -0.5f, -0.5f,    0.0f, 0.0f, 1.0f, 1.0f,  0, 0},   // 左下角
+        {-0.5f, -0.5f,  0.5f,    1.0f, 1.0f, 1.0f, 1.0f,  0, 1},   // 左上角
     };
 
-    uint8_t indices[6] = {
-        // 注意索引从0开始! 
-        // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
-        // 这样可以由下标代表顶点组合成矩形
-        0, 1, 3, // 第一个三角形
-        1, 2, 3  // 第二个三角形
+    uint8_t indices[24] = {
+        1, 0, 2, 3,
     };
 
     uint32_t m_vbo;
     uint32_t m_vao;
     uint32_t m_ebo;
+    uint32_t m_tex[6];
+    const char* m_texPath[6] = {
+        "D:\\lr\\code\\resource\\1.png",
+        "D:\\lr\\code\\resource\\2.png",
+        "D:\\lr\\code\\resource\\3.png",
+        "D:\\lr\\code\\resource\\4.png",
+        "D:\\lr\\code\\resource\\5.png",
+        "D:\\lr\\code\\resource\\6.png"
+    };
+    uint32_t m_texUserMapmip;
+    
     bool     m_useEbo = true;
 
     std::shared_ptr<Shader> m_shader;
+
+    glm::mat4 m_unitMat;
 };
 
 int main(int argc, char** argv) {
 
     glWin mainWin;
 
-    if (mainWin.createWindow(800, 600) ) {
+    if (mainWin.createWindow(1280, 720) ) {
         mainWin.run();
     }
 
