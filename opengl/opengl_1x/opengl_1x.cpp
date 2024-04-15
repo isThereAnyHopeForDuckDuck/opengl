@@ -14,71 +14,107 @@
 #include <vector>
 #include <map>
 #include "freeimage.h"
-
+#include "PixelBuffer.h"
+#include "FrameBufferObject.h"
+#include "time.h"
 struct pointCoord {
-    CELL::float3 s;
-    CELL::float3 e;
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
+    CELL::float3 coord;
+    CELL::float2 uv;
+    CELL::float4 color;
 };
 
 class sampleWindow : public openglWindow {
 private:
 
-    RECT glRect;
+    //RECT glRect;
     GLContext glc;
+    PixelBuffer m_pixelBuffer;
+    FrameBufferObject m_fbo;
+    uint32_t m_pbo[2];
+    uint8_t m_toPbo = 0, m_toCpu = 1;
+
+    int m_x, m_y, m_w, m_h;
 
     uint32_t m_textureId[8] = {0};
     uint8_t m_texNum = 1;
     const uint8_t* m_textureSrc[8] = {
-        (const uint8_t*)"D:\\lr\\code\\res\\1.png",
+        (const uint8_t*)"C:\\ccli\\resource\\image\\num.png",
     };
 
-    static const uint8_t m_pointCnt = 100;
-    pointCoord m_point[m_pointCnt];
+    uint32_t m_tempTex;
+
 public:
     ~sampleWindow() {
     }
     virtual void openglUninit() override{
         glDeleteTextures(m_texNum, m_textureId);
     }
+    virtual void onResize() override{
+        RECT cliRect;
+        GetClientRect(m_hWnd, &cliRect);
+        //这个坐标是图片坐标
+        m_x = cliRect.left;
+        m_y = cliRect.top;
+        m_w = cliRect.right;
+        m_h = cliRect.bottom;
+        glViewport(m_x, m_y, m_w, m_h);
+    }
     sampleWindow(HINSTANCE hInstance, int nCmdShow) :openglWindow(hInstance, nCmdShow) {
 
         HWND hWnd = m_hWnd;
-        RECT cliRect;
-        GetClientRect(hWnd, &cliRect);
-
-        glRect.left = cliRect.left + 10;
-        glRect.right = cliRect.right - 10;
-        glRect.top = cliRect.top - 10;
-        glRect.bottom = cliRect.bottom + 10;
 
         glc.setup(hWnd, GetDC(hWnd));
         glewInit();
         wglSwapIntervalEXT(1);
-
-        //opengl 
-        glViewport(glRect.left, glRect.top, glRect.right, glRect.bottom);
-
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-
- //       glEnable(GL_DEPTH_TEST);
+       
+        //m_pixelBuffer.setup(hWnd, glc.hdc(), glc.hglrc(), glRect.right, glRect.bottom);
+        m_fbo.setup(640, 480);
+        glc.makeCurrent();
+        
+        RECT cliRect;
+        GetClientRect(hWnd, &cliRect);
+        //这个坐标是图片坐标
+        m_x = cliRect.left;
+        m_y = cliRect.top;
+        m_w = cliRect.right;
+        m_h = cliRect.bottom;
+        glViewport(m_x, m_y, m_w, m_h);
 
         glEnable(GL_TEXTURE_2D);
-        
         for (int i = 0; i < m_texNum; i++) {
             m_textureId[i] = createTexture();
             textureImage(i);
         }
+        
+        m_tempTex = createTexture();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+            640, 480, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-        for (int i = 0; i < m_pointCnt; i++) {
-            m_point[i].s = { 0, 0, 0 };
-            m_point[i].s = { i, 0, 0 };
-        }
+
+        glGenBuffers(2, m_pbo);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[0]);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, 1920 * 1080 * 4, 0, GL_STREAM_DRAW);
+
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[1]);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, 1920 * 1080 * 4, 0, GL_STREAM_DRAW);
+
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     }
+
+    bool    save(int w, int h, char* data, size_t length)
+    {
+
+        FIBITMAP* bitmap = FreeImage_Allocate(w, h, 32, 0, 0, 0);
+
+        BYTE* pixels = (BYTE*)FreeImage_GetBits(bitmap);
+
+        memcpy(pixels, data, w * h * 4);
+        bool    bSuccess = FreeImage_Save(FIF_PNG, bitmap, "C:\\ccli\\resource\\image\\pbo.png", PNG_DEFAULT);
+
+        FreeImage_Unload(bitmap);
+        return  bSuccess;
+    }
+
     bool textureImage(int indexs) {
         const char* fileName = (const char*)m_textureSrc[indexs];
         //1 获取图片格式
@@ -139,56 +175,110 @@ public:
 
         return texId;
     }
+    void renderImg(GLuint tex, int x, int y, int w, int h, float grey) {
+        glClearColor(grey, grey, grey, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    void render() override {
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(m_x, m_w, m_y, m_h, -1000, 1000);
+
+        x += m_x;
+        y += m_y;
+        pointCoord point[] = {
+            { {x, y, -1},               {0, 0}, {1, 0, 0, 1} },
+            { {x, y + h, -1},         {0, 1}, {0, 1, 0, 1} },
+            { {x + w, y + h, -1},   {1, 1}, {0, 0, 1, 1} },
+            { {x + w, y, -1},         {1, 0}, {1, 1, 1, 1} },
+        };
+
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &point[0].coord.x);
+        glTexCoordPointer(2, GL_FLOAT, sizeof(pointCoord), &point[0].uv.x);
+
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glDrawArrays(GL_QUADS, 0, 4);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    }
+    void renderRect(int x, int y, int w, int h){
         glClearColor(0.3, 0.3, 0.3, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-        float maxSize = 0;
-        glGetFloatv(GL_POINT_SIZE_MAX_ARB, &maxSize);
-        if (maxSize > 100) {
-            maxSize = 100;
-        }
-
-        glPointSize(maxSize);
-        glPointParameterfARB(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 64);
-        glPointParameterfARB(GL_POINT_SIZE_MIN_ARB, 1);
-        glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, maxSize);
-
-        glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
-
-#if 01
-        glOrtho(glRect.left, glRect.right, glRect.top, glRect.bottom,  -1000, 1000);
-        glMatrixMode(GL_MODELVIEW);
+        glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glTranslatef(glRect.right / 2, glRect.bottom / 2, 0);
-#else
-        gluPerspective(45, 16.0 / 9, 1, 101);
-#endif
-        static int seq = 0;
-        seq++;
-        if (seq%30 == 0) {
-            for (int i = 0; i < m_pointCnt; i++) {
-                m_point[i].s = { rand() % 364, rand() % 364, rand() % 364 };
-                m_point[i].r = rand() % 255;
-                m_point[i].g = rand() % 255;
-                m_point[i].b = rand() % 255;
-                m_point[i].a = 255;
-            }
-        }
+        glOrtho(m_x, m_w, m_y, m_h, -1000, 1000);
 
-        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &m_point[0].s.x);
+        x += m_x;
+        y += m_y;
+        pointCoord point[] = {
+            { {x, y, -1},               {0, 0}, {1, 0, 0, 1} },
+            { {x, y+h, -1},         {0, 1}, {0, 1, 0, 1} },
+            { {x+w, y+h, -1},   {1, 1}, {0, 0, 1, 1} },
+            { {x+w, y, -1},         {1, 0}, {1, 1, 1, 1} },
+        };
+
+        glVertexPointer(3, GL_FLOAT, sizeof(pointCoord), &point[0].coord.x);
+        glColorPointer(4, GL_FLOAT, sizeof(pointCoord), &point[0].color.x);
+
         glEnableClientState(GL_VERTEX_ARRAY);
-        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(pointCoord), &m_point[0].r);
         glEnableClientState(GL_COLOR_ARRAY);
 
-        glEnable(GL_POINT_SPRITE_ARB);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDrawArrays(GL_QUADS, 0, 4);
 
-        glDrawArrays(GL_POINTS, 0, m_pointCnt);
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
+    }
 
+    void render() override {
+        glc.makeCurrent();
+
+        clock_t start_time, end_time;
+        double bindTime, readTime, mapTime;
+
+        //绑定纹理
+        glBindTexture(GL_TEXTURE_2D, m_tempTex);
+
+        //绑定PBO
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[0]);
+        //更新纹理
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 10, 10, 110, 110, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+        //更新PBO
+        void* data = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+        if (data)
+        {
+            uint8_t * pdata = (uint8_t*)data;
+            for (int i = 0; i < 100 * 100 * 4; i++) {
+                pdata[i] = rand() % 255;
+            }
+        }
+        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+        renderImg(m_tempTex, 10, 10, m_h-20, m_h-20, 0.5);
+        
+        //write的方式  乒乓球没意义了 不管是glMapBuffer glMapBufferRange glBufferSubData 都是同步的方式
+
+       
+        /*
+        *   map确实比较耗时间  (map 是为了等glReadPixels的操作，所以才比较耗时，使用glFinsh()阻塞执行glReadPixels的操作
+                就可以看出来)
+        *   glReadPixels 帧缓冲-> PBO ， 异步的
+        *   glMapBuffer PBO->CPU  ， 单线程下 ,可以保证得到的数据，是完整的
+        *   
+        *   乒乓球操作的思路
+        *   1. glReadPixels是比较耗时的，所以调用完glReadPixels之后，就执行其他操作
+        *   2. 对上一个glReadPixels的结果，进行map操作，此时，glReadPixels操作大概率已经完成，如果没有，阻塞时间也会很短
+        *       这样就需要2个PBO
+        *   3.这种方式，map几乎没有阻塞，说明在map时，glReadPixels的操作已经完成了
+        *   其实时间还是一样的，只是没有阻塞了，时间用在别的地方。
+        */
         glc.swapBuffer();
     }
 
